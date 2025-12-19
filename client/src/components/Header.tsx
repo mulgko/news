@@ -21,15 +21,15 @@ export function Header() {
       <div className="max-w-2xl mx-auto px-4 flex items-center justify-between">
         <Link href="/" className="block">
           <h1 className="text-3xl font-bold text-foreground cursor-pointer">
-            News
+            넥
           </h1>
         </Link>
-        
+
         <div className="relative">
           <Input
             type="text"
             placeholder="Search..."
-            className="w-48 pl-4 pr-10"
+            className="w-48 pl-4 pr-10 focus:ring-0 focus:outline-none focus:border-blue-300 focus-visible:ring-0 focus-visible:ring-offset-0"
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
           />
