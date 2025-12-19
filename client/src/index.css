@@ -6,6 +6,8 @@
 @tailwind components;
 @tailwind utilities;
 
+/* #hi */
+
 :root {
   /* Editorial Palette - Clean, Sophisticated, High Contrast */
   --font-display: "Gothic A1", serif;
