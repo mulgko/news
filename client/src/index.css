@@ -1,0 +1,76 @@
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Source+Sans+3:ital,wght@0,300..900;1,300..900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Editorial Palette - Clean, Sophisticated, High Contrast */
+  --font-display: 'Playfair Display', serif;
+  --font-serif: 'Libre Baskerville', serif;
+  --font-sans: 'Source Sans 3', sans-serif;
+
+  --background: 0 0% 98%;
+  --foreground: 220 20% 10%; /* Very dark blue-grey */
+  
+  --primary: 345 80% 40%; /* Deep editorial crimson */
+  --primary-foreground: 0 0% 100%;
+  
+  --secondary: 210 20% 90%;
+  --secondary-foreground: 220 20% 10%;
+  
+  --muted: 210 20% 94%;
+  --muted-foreground: 215 15% 40%;
+  
+  --accent: 35 80% 55%; /* Gold accent */
+  --accent-foreground: 220 20% 10%;
+  
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
+  
+  --border: 214 10% 85%;
+  --input: 214 10% 85%;
+  --ring: 345 80% 40%;
+  
+  --radius: 0.25rem;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-primary/20;
+    font-family: var(--font-sans);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    @apply font-bold tracking-tight text-foreground;
+  }
+  
+  p {
+    font-family: var(--font-serif);
+    @apply leading-relaxed;
+  }
+
+  .font-display { font-family: var(--font-display); }
+  .font-serif { font-family: var(--font-serif); }
+  .font-sans { font-family: var(--font-sans); }
+}
+
+@layer components {
+  .container-wide {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  .link-underline {
+    @apply relative inline-block text-foreground transition-colors duration-300;
+  }
+  
+  .link-underline::after {
+    content: '';
+    @apply absolute bottom-0 left-0 w-full h-[1px] bg-foreground scale-x-0 origin-right transition-transform duration-300 ease-out;
+  }
+  
+  .link-underline:hover::after {
+    @apply scale-x-100 origin-left;
+  }
+}
