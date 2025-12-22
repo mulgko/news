@@ -26,7 +26,9 @@ export default function Article() {
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <h1 className="text-4xl font-display font-bold mb-4">404</h1>
-            <p className="text-muted-foreground font-serif text-lg">Article not found.</p>
+            <p className="text-muted-foreground font-serif text-lg">
+              Article not found.
+            </p>
           </div>
         </div>
         <Footer />
@@ -37,19 +39,19 @@ export default function Article() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
-      
+
       <main className="flex-1">
         {/* Hero Section */}
         <div className="relative w-full h-[50vh] md:h-[60vh] lg:h-[70vh]">
           <div className="absolute inset-0">
-            <img 
-              src={post.imageUrl} 
+            <img
+              src={post.imageUrl}
               alt={post.title}
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
           </div>
-          
+
           <div className="absolute bottom-0 left-0 w-full pb-12">
             <div className="container-wide">
               <div className="max-w-4xl mx-auto">
@@ -79,14 +81,17 @@ export default function Article() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
-                  <span>{post.createdAt && format(new Date(post.createdAt), "MMMM d, yyyy")}</span>
+                  <span>
+                    {post.createdAt &&
+                      format(new Date(post.createdAt), "MMMM d, yyyy")}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4" />
                   <span>5 min read</span>
                 </div>
               </div>
-              
+
               <button className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors font-sans font-bold uppercase text-xs tracking-widest">
                 <Share2 className="w-4 h-4" />
                 Share Article
@@ -95,11 +100,14 @@ export default function Article() {
 
             {/* Article Body */}
             <div className="prose prose-lg md:prose-xl font-serif prose-headings:font-display prose-headings:font-bold prose-headings:text-foreground prose-p:text-foreground/90 prose-p:leading-loose prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-img:rounded-xl prose-img:shadow-lg max-w-none">
-              {post.content.split('\n').map((paragraph, idx) => (
-                paragraph.trim() && <p key={idx}>{paragraph}</p>
-              ))}
+              {post.content
+                .split("\n")
+                .map(
+                  (paragraph, idx) =>
+                    paragraph.trim() && <p key={idx}>{paragraph}</p>
+                )}
             </div>
-            
+
             {/* End Mark */}
             <div className="flex justify-center mt-16 mb-8">
               <div className="text-primary text-3xl">❦</div>
@@ -108,7 +116,7 @@ export default function Article() {
         </article>
       </main>
 
-      <Footer />
+      {/* <Footer /> */}
     </div>
   );
 }

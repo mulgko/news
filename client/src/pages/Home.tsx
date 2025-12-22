@@ -20,7 +20,7 @@ export default function Home() {
     : [];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-y-scroll">
       <Header />
 
       <main className="max-w-2xl mx-auto px-4 py-12">
@@ -43,7 +43,7 @@ export default function Home() {
           </ul>
         ) : (
           <p className="text-center text-muted-foreground py-20">
-            No articles found
+            검색 결과를 찾을 수 없습니다.
           </p>
         )}
       </main>

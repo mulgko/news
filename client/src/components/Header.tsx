@@ -28,7 +28,7 @@ export function Header() {
         <div className="relative">
           <Input
             type="text"
-            placeholder="Search..."
+            placeholder="검색하기.."
             className="w-48 pl-4 pr-10 focus:ring-0 focus:outline-none focus:border-blue-300 focus-visible:ring-0 focus-visible:ring-offset-0"
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
