@@ -8,11 +8,14 @@ export const posts = pgTable("posts", {
   summary: text("summary").notNull(),
   content: text("content").notNull(),
   category: text("category").notNull(),
-  imageUrl: text("image_url").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
+  image_url: text("image_url").notNull(),
+  created_at: timestamp("created_at").defaultNow(),
 });
 
-export const insertPostSchema = createInsertSchema(posts).omit({ id: true, createdAt: true });
+export const insertPostSchema = createInsertSchema(posts).omit({
+  id: true,
+  created_at: true,
+});
 
 export type Post = typeof posts.$inferSelect;
 export type InsertPost = z.infer<typeof insertPostSchema>;

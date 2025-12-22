@@ -14,8 +14,8 @@ export default function Home() {
   const sortedPosts = posts
     ? [...posts].sort(
         (a, b) =>
-          new Date(b.createdAt || 0).getTime() -
-          new Date(a.createdAt || 0).getTime()
+          new Date(b.created_at || 0).getTime() -
+          new Date(a.created_at || 0).getTime()
       )
     : [];
 

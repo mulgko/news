@@ -45,7 +45,7 @@ export default function Article() {
         <div className="relative w-full h-[50vh] md:h-[60vh] lg:h-[70vh]">
           <div className="absolute inset-0">
             <img
-              src={post.imageUrl}
+              src={post.image_url}
               alt={post.title}
               className="w-full h-full object-cover"
             />
@@ -82,8 +82,8 @@ export default function Article() {
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
                   <span>
-                    {post.createdAt &&
-                      format(new Date(post.createdAt), "MMMM d, yyyy")}
+                    {post.created_at &&
+                      format(new Date(post.created_at), "MMMM d, yyyy")}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">

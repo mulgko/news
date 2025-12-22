@@ -20,15 +20,28 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { PenSquare, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
-const CATEGORIES = ["Technology", "Business", "Science", "Health", "Entertainment"];
+const CATEGORIES = [
+  "Technology",
+  "Business",
+  "Science",
+  "Health",
+  "Entertainment",
+];
 
 // Unsplash placeholders for default images
-const RANDOM_IMG = "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&q=80";
+const RANDOM_IMG =
+  "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&q=80";
 
 export function CreatePostDialog() {
   const [open, setOpen] = useState(false);
@@ -42,7 +55,7 @@ export function CreatePostDialog() {
       summary: "",
       content: "",
       category: "",
-      imageUrl: RANDOM_IMG,
+      image_url: RANDOM_IMG,
     },
   });
 
@@ -76,10 +89,15 @@ export function CreatePostDialog() {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="font-display text-2xl">Create New Article</DialogTitle>
+          <DialogTitle className="font-display text-2xl">
+            Create New Article
+          </DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-4">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-6 mt-4"
+          >
             <FormField
               control={form.control}
               name="title"
@@ -87,7 +105,11 @@ export function CreatePostDialog() {
                 <FormItem>
                   <FormLabel>Headline</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter a catchy headline..." {...field} className="font-display font-bold text-lg" />
+                    <Input
+                      placeholder="Enter a catchy headline..."
+                      {...field}
+                      className="font-display font-bold text-lg"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -101,7 +123,10 @@ export function CreatePostDialog() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Category</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select category" />
@@ -109,7 +134,9 @@ export function CreatePostDialog() {
                       </FormControl>
                       <SelectContent>
                         {CATEGORIES.map((cat) => (
-                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                          <SelectItem key={cat} value={cat}>
+                            {cat}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -117,10 +144,10 @@ export function CreatePostDialog() {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
-                name="imageUrl"
+                name="image_url"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Image URL</FormLabel>
@@ -140,10 +167,10 @@ export function CreatePostDialog() {
                 <FormItem>
                   <FormLabel>Summary</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="Brief summary of the article..." 
-                      className="resize-none h-24 font-serif" 
-                      {...field} 
+                    <Textarea
+                      placeholder="Brief summary of the article..."
+                      className="resize-none h-24 font-serif"
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -158,10 +185,10 @@ export function CreatePostDialog() {
                 <FormItem>
                   <FormLabel>Content</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="Write your full story here..." 
-                      className="min-h-[200px] font-serif" 
-                      {...field} 
+                    <Textarea
+                      placeholder="Write your full story here..."
+                      className="min-h-[200px] font-serif"
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -169,7 +196,11 @@ export function CreatePostDialog() {
               )}
             />
 
-            <Button type="submit" className="w-full" disabled={createPost.isPending}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={createPost.isPending}
+            >
               {createPost.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />

@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { insertPostSchema, posts } from './schema';
+import { z } from "zod";
+import { insertPostSchema, posts } from "./schema";
 
 export const errorSchemas = {
   validation: z.object({
@@ -17,27 +17,29 @@ export const errorSchemas = {
 export const api = {
   posts: {
     list: {
-      method: 'GET' as const,
-      path: '/api/posts',
-      input: z.object({
-        category: z.string().optional(),
-        search: z.string().optional(),
-      }).optional(),
+      method: "GET" as const,
+      path: "/api/posts",
+      input: z
+        .object({
+          category: z.string().optional(),
+          search: z.string().optional(),
+        })
+        .optional(),
       responses: {
         200: z.array(z.custom<typeof posts.$inferSelect>()),
       },
     },
     get: {
-      method: 'GET' as const,
-      path: '/api/posts/:id',
+      method: "GET" as const,
+      path: "/api/posts/{id}", // :id -> {id}
       responses: {
         200: z.custom<typeof posts.$inferSelect>(),
         404: errorSchemas.notFound,
       },
     },
     create: {
-      method: 'POST' as const,
-      path: '/api/posts',
+      method: "POST" as const,
+      path: "/api/posts",
       input: insertPostSchema,
       responses: {
         201: z.custom<typeof posts.$inferSelect>(),
@@ -47,17 +49,18 @@ export const api = {
   },
 };
 
-export function buildUrl(path: string, params?: Record<string, string | number>): string {
+export function buildUrl(
+  path: string,
+  params?: Record<string, string | number>
+): string {
   let url = path;
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
-      if (url.includes(`:${key}`)) {
-        url = url.replace(`:${key}`, String(value));
-      }
+      url = url.replace(`{${key}}`, String(value)); // :key -> {key}
     });
   }
   return url;
 }
 
 export type PostInput = z.infer<typeof api.posts.create.input>;
-export type PostResponse = z.infer<typeof api.posts.create.responses[201]>;
+export type PostResponse = z.infer<(typeof api.posts.create.responses)[201]>;

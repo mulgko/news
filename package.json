@@ -4,7 +4,9 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "dev": "cd server-python && python main.py",
+    "dev": "concurrently \"cd server-python && python main.py\" \"vite\"",
+    "dev:server": "cd server-python && python main.py",
+    "dev:client": "vite",
     "dev:fastapi": "cd server-python && uvicorn main:app --reload --host 127.0.0.1 --port 8000",
     "build": "tsx script/build.ts",
     "start": "cd server-python && python main.py",
