@@ -10,23 +10,15 @@ from sqlalchemy import create_engine, Column, Integer, String, Text, TIMESTAMP, 
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 import uvicorn
-import httpx
 import feedparser
 import requests
 from bs4 import BeautifulSoup
 import time
 import re
-import base64
-import urllib.parse
-from newspaper import Article, Config
-import ssl
-import urllib3
-import certifi
+import trafilatura
 
-# SSL 환경 설정 개선
-os.environ['SSL_CERT_FILE'] = certifi.where()
-ssl._create_default_https_context = ssl._create_unverified_context
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+# 간단 버전에서는 기본 세션만 사용
+session = requests.Session()
 
 def get_sort_key(article):
     """기사 정렬을 위한 키 함수 - 최신순 정렬"""
@@ -43,71 +35,257 @@ def get_sort_key(article):
     return datetime.min
 
 
-def decode_google_news_url(source_url: str) -> str:
-    """Google News의 CBMi... 형태의 URL을 디코딩하여 실제 URL을 추출합니다."""
+def decode_google_news_url(url: str, session=None) -> str:
+    """
+    Google News URL 디코딩 (googlenewsdecoder 우선 + 기존 방법들)
+    """
+    if not url or "google.com" not in url:
+        return url
+
     try:
-        if not source_url.startswith("https://news.google.com/rss/articles/"):
-            return source_url
+        # 0. googlenewsdecoder 우선 시도 (가장 효과적!)
+        try:
+            from googlenewsdecoder import new_decoderv1
+            decoded = new_decoderv1(url)
+            if decoded and decoded != url and "google.com" not in decoded:
+                print(f"✅ googlenewsdecoder 성공: {decoded[:80]}...")
+                return decoded
+        except ImportError:
+            print("⚠️ googlenewsdecoder 미설치")
+        except Exception as decoder_error:
+            print(f"⚠️ googlenewsdecoder 실패: {decoder_error}")
 
-        prefix = "https://news.google.com/rss/articles/"
-        base64_str = source_url[len(prefix):].split('?')[0]
+        # 1. HTTP 리다이렉트 시도
+        if session is None:
+            session = requests.Session()
+            session.verify = False
 
-        # Base64 패딩 보정 및 디코딩
-        padding = '=' * (4 - len(base64_str) % 4)
-        decoded_bytes = base64.b64decode(base64_str + padding)
+        try:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+                'Referer': 'https://news.google.com/',
+            }
 
-        # 디코딩된 바이트에서 URL 패턴 추출 (보통 4번째 바이트 이후에 URL이 위치함)
-        # 프로토콜(http) 위치를 찾아 그 지점부터 추출하는 것이 가장 안정적입니다.
-        decoded_str = decoded_bytes.decode('utf-8', errors='ignore')
-        if "http" in decoded_str:
-            start_idx = decoded_str.find("http")
-            # URL 끝부분의 불필요한 바이너리 문자 제거
-            actual_url = ""
-            for char in decoded_str[start_idx:]:
-                if ord(char) < 32 or ord(char) > 126: # 제어 문자나 비 ASCII 문자에서 중단
-                    break
-                actual_url += char
-            return actual_url
+            print(f"🔗 HTTP 리다이렉트 시도...")
+            response = session.get(url, headers=headers, allow_redirects=True, timeout=15, verify=False)
+
+            final_url = response.url
+            if final_url != url and "google.com" not in final_url and final_url.startswith('http'):
+                print(f"✅ HTTP 리다이렉트 성공: {final_url[:80]}...")
+                return final_url
+            else:
+                print(f"⚠️ 리다이렉트 결과가 유효하지 않음: {final_url[:60]}...")
+
+        except Exception as redirect_error:
+            print(f"⚠️ HTTP 리다이렉트 실패: {redirect_error}")
+
+        # 2. Base64 디코딩 시도 (보조 수단)
+        import base64
+        import re
+
+        match = re.search(r'/rss/articles/(CBMi[^?]+)', url)
+        if match:
+            encoded_part = match.group(1)
+            print(f"🔍 Base64 디코딩 시도...")
+
+            try:
+                # 패딩 추가
+                missing_padding = len(encoded_part) % 4
+                if missing_padding:
+                    encoded_part += '=' * (4 - missing_padding)
+
+                decoded_bytes = base64.urlsafe_b64decode(encoded_part)
+                decoded_text = decoded_bytes.decode('utf-8', errors='ignore')
+
+                # URL 패턴 찾기
+                url_patterns = [
+                    r'https?://[^\s\'"<>(){}\[\]]+',
+                    r'https?://[^\s\'"<>\s]+',
+                ]
+
+                for pattern in url_patterns:
+                    matches = re.findall(pattern, decoded_text)
+                    for match in matches:
+                        real_url = re.sub(r'[<>,"\'\s]+$', '', match)
+                        if len(real_url) > 20 and "google.com" not in real_url and real_url.startswith('http'):
+                            print(f"✅ Base64에서 URL 발견: {real_url[:80]}...")
+                            return real_url
+
+            except Exception as b64_error:
+                print(f"⚠️ Base64 디코딩 실패: {b64_error}")
+
+        # 3. 최후의 수단: URL 파라미터 방식
+        from urllib.parse import urlparse, parse_qs
+        parsed = urlparse(url)
+        if 'url' in parse_qs(parsed.query):
+            direct_url = parse_qs(parsed.query)['url'][0]
+            if "google.com" not in direct_url and direct_url.startswith('http'):
+                print(f"✅ URL 파라미터에서 추출: {direct_url[:80]}...")
+                return direct_url
+
+        print(f"⚠️ 모든 디코딩 방법 실패, 원본 URL 사용")
+        return url
+
     except Exception as e:
-        print(f"⚠️ URL Decoding failed: {e}")
-    return source_url
+        print(f"💥 URL 디코딩 오류: {e}, 원본 사용")
+        return url
 
-
-def extract_news_content(article_url):
-    """실제 뉴스 페이지에서 본문을 추출합니다."""
+def extract_news_content(article_url: str, session=None) -> str:
+    """
+    개선된 뉴스 본문 추출 (BeautifulSoup 우선)
+    Google News URL 디코딩 후 본문 자동 추출
+    """
     try:
-        # 1. Google News URL인 경우 실제 언론사 URL로 먼저 변환
-        real_url = decode_google_news_url(article_url)
+        # 1. Google News URL 디코딩
+        real_url = decode_google_news_url(article_url, session)
 
-        if real_url == article_url:
-            # 디코딩 실패 시 requests를 이용한 최종 리다이렉트 추적 시도
-            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
-            with requests.Session() as s:
-                s.verify = False
-                resp = s.get(article_url, headers=headers, timeout=5, allow_redirects=True)
-                real_url = resp.url
+        if not real_url:
+            print(f"URL 처리 실패: {article_url}")
+            return None
 
-        print(f"🔗 Attempting extraction from: {real_url}")
+        # Google News URL인 경우에도 시도 (리다이렉트될 것임)
+        target_url = real_url if real_url != article_url else article_url
 
-        # 2. newspaper3k 설정 (SSL 검증 우회 설정은 없으므로 URL 자체가 중요함)
-        config = Config()
-        config.browser_user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        config.request_timeout = 15
+        # 2. BeautifulSoup로 우선 추출 시도 (더 안정적)
+        print(f"BeautifulSoup로 본문 추출 시도: {target_url[:80]}...")
+        result = _extract_with_beautifulsoup(target_url, session)
+        if result:
+            return result
 
-        article = Article(real_url, config=config, language='ko')
-        article.download()
-        article.parse()
+        # 3. BeautifulSoup 실패시 Trafilatura 대안 시도
+        print(f"BeautifulSoup 실패, Trafilatura 대안 시도")
+        downloaded = trafilatura.fetch_url(target_url)
 
-        if len(article.text) > 100:
-            content = article.text.strip()
-            print(f"✅ Newspaper3k extracted content: {len(content)} characters")
-            return content
+        if not downloaded:
+            print(f"페이지 다운로드 실패: {target_url}")
+            return None
+
+        # 본문 텍스트 추출 (정밀 모드, 댓글 제외)
+        text = trafilatura.extract(
+            downloaded,
+            output_format='txt',
+            include_comments=False,
+            favor_precision=True
+        )
+
+        if text and len(text.strip()) > 100:
+            # 성공: 텍스트 정리
+            cleaned_text = ' '.join(text.split())  # 연속 공백 제거
+            print(f"Trafilatura 추출 성공: {len(cleaned_text)}자")
+            return cleaned_text[:2000]  # 길이 제한
         else:
-            print(f"❌ Newspaper3k failed to extract meaningful content")
+            print(f"Trafilatura 추출 실패")
             return None
 
     except Exception as e:
-        print(f"❌ Newspaper3k error: {e}")
+        print(f"본문 추출 오류: {e}")
+        # 최종 Fallback: BeautifulSoup 재시도
+        try:
+            return _extract_with_beautifulsoup(target_url, session)
+        except Exception as fallback_e:
+            print(f"Fallback도 실패: {fallback_e}")
+            return None
+
+
+def _extract_with_beautifulsoup(url: str, session=None) -> str:
+    """
+    BeautifulSoup를 사용한 대안 본문 추출
+    Trafilatura 실패시 사용
+    """
+    try:
+        if session is None:
+            session = requests.Session()
+            session.verify = False
+
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+        }
+
+        # SSL 검증 완전 우회 및 타임아웃 증가 - 강화된 SSL 처리
+        try:
+            response = session.get(url, headers=headers, timeout=20, verify=False, allow_redirects=True)
+            response.raise_for_status()
+        except Exception as ssl_error:
+            print(f"⚠️ SSL 오류 발생, 인증서 검증 완전 우회 시도: {ssl_error}")
+            try:
+                import ssl
+                response = session.get(
+                    url,
+                    headers=headers,
+                    timeout=20,
+                    verify=False,
+                    allow_redirects=True,
+                    cert_reqs=ssl.CERT_NONE
+                )
+                response.raise_for_status()
+            except Exception as fallback_error:
+                print(f"💥 SSL 우회 실패: {fallback_error}")
+                raise fallback_error
+
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        # 불필요한 요소 제거
+        for element in soup.find_all(['script', 'style', 'nav', 'footer', 'header', 'aside']):
+            element.decompose()
+
+        # 한국 뉴스 사이트용 본문 선택자들
+        content_selectors = [
+            'article',
+            '[id*="article"]',
+            '[class*="article"]',
+            '[id*="content"]',
+            '[class*="content"]',
+            '#articleBody',
+            '#newsct_article',
+            '.article_body',
+            '.news_body',
+            'div[itemprop="articleBody"]',
+            '.article-content',
+            'main'
+        ]
+
+        content_text = ""
+        for selector in content_selectors:
+            elements = soup.select(selector)
+            if elements:
+                texts = []
+                for elem in elements:
+                    paragraphs = elem.find_all(['p', 'div'])
+                    for p in paragraphs:
+                        text = p.get_text(strip=True)
+                        if len(text) > 30:  # 의미있는 길이의 텍스트만
+                            texts.append(text)
+
+                if texts:
+                    content_text = '\n\n'.join(texts)
+                    break
+
+        # 추가 정리
+        if content_text:
+            # 한국 뉴스 사이트 흔한 아티팩트 제거
+            content_text = re.sub(r'▶.*?\n', '', content_text)
+            content_text = re.sub(r'\[.*?\]', '', content_text)
+            content_text = re.sub(r'사진.*?\n', '', content_text)
+            content_text = re.sub(r'\s+', ' ', content_text)
+            content_text = content_text.strip()
+
+        if len(content_text) > 100:
+            print(f"✅ BeautifulSoup 추출 성공: {len(content_text)}자")
+            return content_text[:2000]
+        else:
+            print(f"❌ BeautifulSoup 추출 실패: 텍스트가 너무 짧음")
+            return None
+
+    except Exception as e:
+        print(f"💥 BeautifulSoup 추출 오류: {e}")
         return None
 
 
@@ -262,63 +440,17 @@ class GoogleNewsRSSClient:
     def __init__(self):
         # 한국 뉴스 RSS 피드
         self.base_url = "https://news.google.com/rss"
-        self.session = requests.Session()
-        self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        })
-
-            # SSL 인증서 검증 비활성화 추가
-        self.session.verify = False
+        # 간단 버전에서는 기본 세션 사용
+        self.session = session
 
     def extract_article_content(self, url: str) -> str:
-        """뉴스 기사 URL에서 전체 내용을 추출"""
-        try:
-            # 요청 간 딜레이 추가 (크롤링 예의)
-            time.sleep(1)
-
-            response = self.session.get(url, timeout=10)
-            response.raise_for_status()
-
-            soup = BeautifulSoup(response.content, 'html.parser')
-
-            # 다양한 뉴스 사이트의 본문 추출 시도
-            content_selectors = [
-                'article',  # 일반적인 article 태그
-                '[class*="content"]',  # content 클래스가 포함된 요소
-                '[class*="article"]',  # article 클래스가 포함된 요소
-                '[class*="story"]',  # story 클래스가 포함된 요소
-                'div[itemprop="articleBody"]',  # schema.org 마크업
-                '.news-content',  # 네이버 뉴스
-                '#articleBodyContents',  # 다음 뉴스
-                '.article-body',  # 일반적인 본문 클래스
-                'p'  # 모든 p 태그 (fallback)
-            ]
-
-            for selector in content_selectors:
-                content_elements = soup.select(selector)
-                if content_elements:
-                    # 텍스트 추출 및 정리
-                    content_text = ' '.join([elem.get_text().strip() for elem in content_elements if elem.get_text().strip()])
-
-                    # 불필요한 텍스트 제거 (광고, 관련 기사 등)
-                    content_text = re.sub(r'▶.*?\n', '', content_text)  # 네이버 뉴스 화살표 제거
-                    content_text = re.sub(r'\[.*?\]', '', content_text)  # 대괄호 안 텍스트 제거
-                    content_text = re.sub(r'사진.*?\n', '', content_text)  # 사진 설명 제거
-                    content_text = re.sub(r'\s+', ' ', content_text)  # 연속된 공백 제거
-
-                    if len(content_text) > 100:  # 충분한 길이의 내용인지 확인
-                        return content_text[:2000]  # 길이 제한
-
-            return ""  # 내용 추출 실패
-
-        except Exception as e:
-            print(f"Error extracting content from {url}: {e}")
-            return ""
+        """Trafilatura를 사용한 뉴스 본문 추출"""
+        return extract_news_content(url, self.session)
 
     def _extract_real_url(self, google_news_url: str) -> str:
         """Google News URL에서 실제 뉴스 URL 추출 (간소화된 버전)"""
-        # 새로 만든 전문 디코더 사용
-        return decode_google_news_url(google_news_url)
+        # 새로 만든 전문 디코더 사용 - self.session 전달!
+        return decode_google_news_url(google_news_url, self.session)
 
     def get_news_by_topic(self, topic: str = "general") -> List[Dict]:
         """Google News 검색 RSS에서 뉴스 가져오기"""
@@ -347,10 +479,46 @@ class GoogleNewsRSSClient:
             # RSS 피드 파싱
             print(f"🌐 Fetching RSS from: {rss_url}")  # 디버깅 로그
 
-            # SSL 검증 없이 RSS 가져오기 (requests 사용)
-            response = self.session.get(rss_url, verify=False)
-            response.raise_for_status()
-            rss_content = response.text
+            # SSL 검증 없이 RSS 가져오기 (requests 사용) - 강화된 SSL 우회
+            try:
+                # 첫 번째 시도: 일반적인 SSL 우회
+                response = self.session.get(rss_url, verify=False, timeout=30)
+                response.raise_for_status()
+                rss_content = response.text
+            except Exception as ssl_error:
+                print(f"⚠️ SSL 오류 발생, 인증서 검증 완전 우회 시도: {ssl_error}")
+                try:
+                    # 두 번째 시도: 더 강력한 SSL 우회
+                    import ssl
+                    from urllib3.util import ssl_
+
+                    # SSL 컨텍스트 생성 (인증서 검증 완전 비활성화)
+                    ssl_context = ssl.create_default_context()
+                    ssl_context.check_hostname = False
+                    ssl_context.verify_mode = ssl.CERT_NONE
+
+                    response = self.session.get(
+                        rss_url,
+                        verify=False,
+                        timeout=30,
+                        cert_reqs=ssl.CERT_NONE
+                    )
+                    response.raise_for_status()
+                    rss_content = response.text
+                except Exception as fallback_error:
+                    print(f"💥 SSL 우회 실패, 마지막 시도: {fallback_error}")
+                    # 세 번째 시도: urllib 사용
+                    try:
+                        import urllib.request
+                        import urllib.error
+
+                        req = urllib.request.Request(rss_url)
+                        req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
+                        with urllib.request.urlopen(req, timeout=30) as response:
+                            rss_content = response.read().decode('utf-8')
+                    except Exception as urllib_error:
+                        print(f"💥 모든 SSL 우회 방법 실패: {urllib_error}")
+                        return []
 
             # 가져온 RSS 텍스트를 feedparser로 파싱
             feed = feedparser.parse(rss_content)
@@ -428,10 +596,10 @@ class GoogleNewsRSSClient:
 async def fetch_and_store_news(db: Session):
     """Google News RSS에서 뉴스를 가져와서 데이터베이스에 저장"""
     client = GoogleNewsRSSClient()
-    
+
     # 여러 카테고리의 뉴스 가져오기
     categories = ["business", "technology", "science", "health", "entertainment"]
-    
+
     total_processed = 0
     total_saved = 0
 
@@ -440,15 +608,15 @@ async def fetch_and_store_news(db: Session):
         articles = client.get_news_by_topic(topic=category)
         print(f"📊 Found {len(articles)} articles for {category}")  # 디버깅 로그
 
-        # 최신순으로 정렬하고 20개로 제한
+        # 최신순으로 정렬하고 5개로 제한
         print(f"🔢 Before sorting: {len(articles)} articles")  # 디버깅 로그
         try:
-            articles = sorted(articles, key=get_sort_key, reverse=True)[:20]
+            articles = sorted(articles, key=get_sort_key, reverse=True)[:5]
             print(f"✅ After sorting and limiting: {len(articles)} articles")  # 디버깅 로그
         except Exception as sort_err:
             print(f"❌ Sorting failed: {sort_err}")  # 디버깅 로그
-            # 정렬 실패시 그냥 처음 20개 사용
-            articles = articles[:20]
+            # 정렬 실패시 그냥 처음 5개 사용
+            articles = articles[:5]
         print(f"📊 Processing {len(articles)} most recent articles for {category}")  # 디버깅 로그
 
         try:
@@ -457,112 +625,46 @@ async def fetch_and_store_news(db: Session):
                 title = article.get("title", "").strip()
                 description = article.get("description", "").strip()
 
-                # HTML 태그 제거 (Google News RSS는 HTML 형식의 description을 제공)
+                # HTML 태그 제거만 하고 끝
                 if description:
                     soup = BeautifulSoup(description, 'html.parser')
-                    # 텍스트만 추출하고 불필요한 공백 제거
                     description = soup.get_text().strip()
-                    # 여러 공백을 하나로 통합
                     description = ' '.join(description.split())
 
                 total_processed += 1
-                print(f"📰 Processing article {i+1}: {title[:50]}...")  # 디버깅 로그
-                print(f"📝 Description after cleaning: {description[:100]}...")  # 디버깅 로그
+                print(f"📰 Processing article {i+1}: {title[:50]}...")
 
-                # 실제 뉴스 본문 추출 시도
-                news_url = ""
-                full_content = None
-
-                # Google News에서 실제 뉴스 URL 추출 (GoogleNewsRSSClient에서 "url" 필드에 저장됨)
+                # 본문 추출 시도
                 news_url = article.get("url", "")
-                print(f"🔗 News URL: {news_url}")  # 디버깅 로그
+                content = description  # 기본값으로 RSS 요약 사용
 
-                # 실제 뉴스 페이지에서 본문 추출
+                # 실제 본문 추출 시도
                 if news_url:
-                    full_content = extract_news_content(news_url)
-
-                # content 설정 (실제 본문 우선, 없으면 description 사용)
-                if full_content:
-                    content = full_content
-                    print(f"📄 Using full article content ({len(content)} chars)")  # 디버깅 로그
-                else:
-                    content = description
-                    print(f"📄 Using RSS description ({len(content)} chars)")  # 디버깅 로그
-
-                # 유효성 검증
-                if not title or not content:
-                    print(f"❌ Skipped: Empty title or content")  # 디버깅 로그
-                    continue
-                
-                # 중복 체크
-                published_date = article.get("publishedAt", "")
-                existing = None
-                
-                if published_date:
                     try:
-                        from datetime import datetime
-                        pub_dt = datetime.fromisoformat(published_date.replace('Z', '+00:00'))
-                        date_str = pub_dt.date().isoformat()
-                        existing = db.query(Post).filter(
-                            Post.title == title,
-                            func.date(Post.created_at) == date_str
-                        ).first()
-                    except Exception as date_err:
-                        print(f"⚠️ Date parsing error: {date_err}")  # 디버깅 로그
-                        existing = db.query(Post).filter(Post.title == title).first()
-                else:
-                    existing = db.query(Post).filter(Post.title == title).first()
-                
-                if existing:
-                    print(f"🔄 Skipped: Already exists - {title[:30]}...")  # 디버깅 로그
-                    continue
-                
-                # 저장할 데이터 준비
-                # news_url은 위에서 이미 추출됨
-
-                print(f"📝 Original content length: {len(content)}")  # 디버깅 로그
-                print(f"🔗 News URL: {news_url}")  # 디버깅 로그
-
-                # RSS 내용이 부족하거나 링크만 있으면 실제 기사에서 전체 내용 추출 시도
-                should_extract = (
-                    len(content) < 200 or      # 내용이 너무 짧거나
-                    "http" in content or        # 링크가 포함되어 있거나
-                    "..." in content or         # 생략 기호가 있거나
-                    content.strip() == "" or    # 내용이 비어있거나
-                    len(content.split()) < 10   # 단어가 10개 미만
-                )
-
-                if should_extract and news_url:
-                    print(f"🛠️ Extracting full content from: {news_url}")  # 디버깅 로그
-                    try:
-                        full_article_content = client.extract_article_content(news_url)
-                        if full_article_content and len(full_article_content) > len(content):
-                            content = full_article_content
-                            print(f"✅ Successfully extracted content ({len(content)} chars)")  # 디버깅 로그
+                        extracted_content = client.extract_article_content(news_url)
+                        if extracted_content and len(extracted_content.strip()) > 50:
+                            content = extracted_content
+                            print(f"✅ 본문 추출 성공: {len(content)}자")
                         else:
-                            print(f"❌ Failed to extract content or content too short")  # 디버깅 로그
-                            # 추출 실패 시 원본 content라도 사용 (링크 제거)
-                            if "http" in content:
-                                content = content.split("http")[0].strip()
-                                print(f"🔧 Cleaned content: {content[:100]}...")  # 디버깅 로그
-                    except Exception as extract_err:
-                        print(f"⚠️ Content extraction failed: {extract_err}")  # 디버깅 로그
-                        # 에러 시에도 링크 제거된 content 사용
-                        if "http" in content:
-                            content = content.split("http")[0].strip()
-                
-                if not content:
-                    print(f"❌ Skipped: No content available")  # 디버깅 로그
+                            print("⚠️ 본문 추출 실패, RSS 요약 사용")
+                    except Exception as e:
+                        print(f"💥 본문 추출 오류: {e}, RSS 요약 사용")
+
+                # 중복 체크 간단하게
+                existing = db.query(Post).filter(Post.title == title).first()
+                if existing:
+                    print(f"🔄 Skipped: Already exists - {title[:30]}...")
                     continue
-                
+
+                # 저장
                 full_content = content
                 if news_url:
                     full_content += f"\n\n🔗 전체 기사 보기: {news_url}"
-                
+
                 image_url = article.get("urlToImage", "")
                 if not image_url:
                     image_url = "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=800"
-                
+
                 post_data = {
                     "title": title[:200],
                     "summary": description[:300],
@@ -570,15 +672,11 @@ async def fetch_and_store_news(db: Session):
                     "category": category.capitalize(),
                     "image_url": image_url
                 }
-                
-                try:
-                    db_post = Post(**post_data)
-                    db.add(db_post)
-                    total_saved += 1
-                    print(f"✅ Saved article: {title[:30]}...")  # 디버깅 로그
-                except Exception as save_err:
-                    print(f"❌ Save failed: {save_err}")  # 디버깅 로그
-                    continue
+
+                db_post = Post(**post_data)
+                db.add(db_post)
+                total_saved += 1
+                print(f"✅ Saved article: {title[:30]}...")
                 
         except Exception as e:
             print(f"💥 Error fetching {category} news: {e}")
@@ -656,9 +754,26 @@ async def fetch_latest_news(db: Session = Depends(get_db)):
     
         
 
+# 간단한 서버 실행
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8000))  # 5000 대신 8000 사용
-    uvicorn.run(app, host="127.0.0.1", port=port)
+    # 테스트 코드
+    if len(sys.argv) > 1 and sys.argv[1] == "test":
+        print("🧪 본문 추출 테스트...")
+        test_url = 'https://news.google.com/rss/articles/CBMiVkFVX3lxTE9WUjlNZ0psX0hZMW5mVlQyZFhRblQ4TVFaRVdUMmdIMXNKbXUzZ284MmVuWDhRcVV6eFBHdWWhmMkhON1lEMFRwWnMxNDdMMU1Qb3BsdEZB?oc=5'
+        try:
+            result = extract_news_content(test_url)
+            if result:
+                print(f'✅ 성공! 추출된 텍스트 길이: {len(result)}')
+                print(f'📝 미리보기: {result[:200]}...')
+            else:
+                print('❌ 추출 실패')
+        except Exception as e:
+            print(f'💥 오류 발생: {e}')
+            import traceback
+            print(traceback.format_exc())
+    else:
+        port = int(os.getenv("PORT", 8000))
+        uvicorn.run(app, host="127.0.0.1", port=port)
 
 
 
