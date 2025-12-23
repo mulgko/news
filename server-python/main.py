@@ -37,25 +37,43 @@ def get_sort_key(article):
 
 def decode_google_news_url(url: str, session=None) -> str:
     """
-    Google News URL 디코딩 (googlenewsdecoder 우선 + 기존 방법들)
+    Google News URL 디코딩 (외부 디코딩 API 우선 사용)
+    별도 디코딩 서버를 호출하여 URL 변환
     """
     if not url or "google.com" not in url:
         return url
 
     try:
-        # 0. googlenewsdecoder 우선 시도 (가장 효과적!)
+        # 0. 외부 디코딩 API 우선 시도
         try:
-            from googlenewsdecoder import new_decoderv1
-            decoded = new_decoderv1(url)
-            if decoded and decoded != url and "google.com" not in decoded:
-                print(f"✅ googlenewsdecoder 성공: {decoded[:80]}...")
-                return decoded
-        except ImportError:
-            print("⚠️ googlenewsdecoder 미설치")
-        except Exception as decoder_error:
-            print(f"⚠️ googlenewsdecoder 실패: {decoder_error}")
+            print(f"🔗 외부 디코딩 API 호출...")
+            import requests
 
-        # 1. HTTP 리다이렉트 시도
+            # 디코딩 API 서버 호출 (로컬호스트)
+            api_url = "http://127.0.0.1:5000/decode/"
+            payload = {
+                "source_url": url,
+                "interval_time": 3  # 빠른 응답을 위해 짧게 설정
+            }
+
+            response = requests.post(api_url, json=payload, timeout=10)
+
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("success") and data.get("decoded_url"):
+                    decoded_url = data["decoded_url"]
+                    if decoded_url != url and "google.com" not in decoded_url:
+                        print(f"✅ 외부 API 디코딩 성공: {decoded_url[:80]}...")
+                        return decoded_url
+
+            print(f"⚠️ 외부 API 호출 실패 또는 유효하지 않은 결과: {response.status_code}")
+
+        except requests.exceptions.RequestException as api_error:
+            print(f"⚠️ 외부 API 서버 연결 실패 (서버가 실행 중인지 확인): {api_error}")
+        except Exception as api_error:
+            print(f"⚠️ 외부 API 호출 오류: {api_error}")
+
+        # 1. HTTP 리다이렉트 시도 (fallback)
         if session is None:
             session = requests.Session()
             session.verify = False
@@ -81,7 +99,7 @@ def decode_google_news_url(url: str, session=None) -> str:
         except Exception as redirect_error:
             print(f"⚠️ HTTP 리다이렉트 실패: {redirect_error}")
 
-        # 2. Base64 디코딩 시도 (보조 수단)
+        # 2. Base64 디코딩 시도 (최후의 수단)
         import base64
         import re
 
@@ -115,15 +133,6 @@ def decode_google_news_url(url: str, session=None) -> str:
 
             except Exception as b64_error:
                 print(f"⚠️ Base64 디코딩 실패: {b64_error}")
-
-        # 3. 최후의 수단: URL 파라미터 방식
-        from urllib.parse import urlparse, parse_qs
-        parsed = urlparse(url)
-        if 'url' in parse_qs(parsed.query):
-            direct_url = parse_qs(parsed.query)['url'][0]
-            if "google.com" not in direct_url and direct_url.startswith('http'):
-                print(f"✅ URL 파라미터에서 추출: {direct_url[:80]}...")
-                return direct_url
 
         print(f"⚠️ 모든 디코딩 방법 실패, 원본 URL 사용")
         return url
