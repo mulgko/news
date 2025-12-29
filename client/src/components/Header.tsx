@@ -20,11 +20,11 @@ export function Header() {
   };
 
   return (
-    <header className="border-b border-border py-6">
+    <header className="border-b border-gray-100 dark:border-gray-900 py-6">
       <div className="max-w-2xl mx-auto px-4 flex items-center justify-between">
         <Link href="/" className="block">
           <h1 className="text-3xl font-bold text-foreground cursor-pointer">
-            넥
+            NEXT
           </h1>
         </Link>
 

@@ -24,6 +24,8 @@ export function usePosts(params?: { category?: string; search?: string }) {
       if (!res.ok) throw new Error("Failed to fetch posts");
       return api.posts.list.responses[200].parse(await res.json());
     },
+    staleTime: 0, // 캐시 사용하지 않음 - 항상 최신 데이터
+    gcTime: 0, // 캐시 완전 제거 (React Query v4)
   });
 }
 
@@ -61,5 +63,80 @@ export function useCreatePost() {
     },
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: [api.posts.list.path] }),
+  });
+}
+
+export function useLikePost() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(
+        API_BASE_URL + buildUrl(api.posts.like.path, { id }),
+        {
+          method: api.posts.like.method,
+          credentials: "include",
+        }
+      );
+      if (res.status === 404) {
+        throw new Error("Post not found");
+      }
+      if (!res.ok) {
+        throw new Error("Failed to like post");
+      }
+      return api.posts.like.responses[200].parse(await res.json());
+    },
+    onSuccess: () => {
+      // 게시물 목록과 개별 게시물 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: [api.posts.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.posts.get.path] });
+    },
+  });
+}
+
+export function useViewPost() {
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(
+        API_BASE_URL + buildUrl(api.posts.view.path, { id }),
+        {
+          method: api.posts.view.method,
+          credentials: "include",
+        }
+      );
+      if (res.status === 404) {
+        throw new Error("Post not found");
+      }
+      if (!res.ok) {
+        throw new Error("Failed to view post");
+      }
+      return api.posts.view.responses[200].parse(await res.json());
+    },
+  });
+}
+
+export function useDislikePost() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(
+        API_BASE_URL + buildUrl(api.posts.dislike.path, { id }),
+        {
+          method: api.posts.dislike.method,
+          credentials: "include",
+        }
+      );
+      if (res.status === 404) {
+        throw new Error("Post not found");
+      }
+      if (!res.ok) {
+        throw new Error("Failed to dislike post");
+      }
+      return api.posts.dislike.responses[200].parse(await res.json());
+    },
+    onSuccess: () => {
+      // 게시물 목록 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: [api.posts.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.posts.get.path] });
+    },
   });
 }

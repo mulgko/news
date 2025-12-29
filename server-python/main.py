@@ -2,7 +2,7 @@ import sys
 from fastapi import FastAPI, HTTPException, Query, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_serializer
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, List, AsyncGenerator, Dict
 from contextlib import asynccontextmanager
 import os
@@ -322,7 +322,11 @@ class Post(Base):
     content = Column(Text, nullable=False)
     category = Column(String, nullable=False)
     image_url = Column("image_url", String, nullable=False)
+    url = Column(String)
     created_at = Column("created_at", TIMESTAMP, server_default=func.now())
+    likes = Column(Integer, default=0)
+    dislikes = Column(Integer, default=0)
+    views = Column(Integer, default=0)
 
 # Pydantic 스키마
 class PostBase(BaseModel):
@@ -331,6 +335,7 @@ class PostBase(BaseModel):
     content: str
     category: str
     image_url: str
+    url: Optional[str] = None
 
 class PostCreate(PostBase):
     pass
@@ -338,6 +343,9 @@ class PostCreate(PostBase):
 class PostResponse(PostBase):
     id: int
     created_at: Optional[datetime] = None
+    likes: Optional[int] = 0
+    dislikes: Optional[int] = 0
+    views: Optional[int] = 0
 
     @field_serializer('created_at')
     def serialize_created_at(self, value: Optional[datetime]) -> Optional[str]:
@@ -401,6 +409,7 @@ async def seed_database():
                 "content": "인공지능이 빠르게 발전하고 있습니다. 내년에 어떤 변화가 예상되는지 알아보세요. 전문가들은 생성형 모델과 자율 에이전트 분야에서 주요 돌파구를 예상하고 있습니다. AI의 일상생활 통합이 더욱 원활해지며 의료, 금융 등 다양한 산업에 영향을 미칠 것입니다.",
                 "category": "기술",
                 "image_url": "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800",
+                "url": "https://news.google.com/articles/example-ai-future-2025",
             },
             {
                 "title": "인플레이션 완화로 글로벌 증시 상승",
@@ -408,6 +417,7 @@ async def seed_database():
                 "content": "이번 주 경제 지표 호조로 주식 시장이 신고점을 기록했습니다. 투자자들은 중앙은행의 다음 움직임에 대해 낙관적입니다. 기술주를 중심으로 주요 지수가 사상 최고치를 기록했습니다.",
                 "category": "비즈니스",
                 "image_url": "https://images.unsplash.com/photo-1611974765270-ca12586343bb?auto=format&fit=crop&q=80&w=800",
+                "url": "https://news.google.com/articles/example-inflation-stock-market",
             },
             {
                 "title": "생명존에 위치한 새로운 행성 발견",
@@ -415,6 +425,7 @@ async def seed_database():
                 "content": "천문학자들이 지구와 유사한 잠재적 행성을 40광년 거리에서 발견했습니다. 글리제 12 b로 명명된 이 행성은 적색 왜성 주위를 공전하며 액체 물을 유지할 수 있는 온도를 가지고 있습니다. 제임스 웹 우주 망원경을 통한 추가 관측이 계획되어 있습니다.",
                 "category": "과학",
                 "image_url": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=800",
+                "url": "https://news.google.com/articles/example-new-planet-discovery",
             },
             {
                 "title": "오늘 밤 숙면을 위한 5가지 팁",
@@ -422,6 +433,7 @@ async def seed_database():
                 "content": "숙면을 취하기 어려우신가요? 과학적으로 검증된 팁을 확인하세요. 1. 규칙적인 일정 유지하기. 2. 편안한 환경 조성하기. 3. 취침 전 화면 시간 제한하기. 4. 먹는 음식과 마시는 음료 주의하기. 5. 일상 생활에 신체 활동 포함하기.",
                 "category": "건강",
                 "image_url": "https://images.unsplash.com/photo-1541781777621-794453259724?auto=format&fit=crop&q=80&w=800",
+                "url": "https://news.google.com/articles/example-sleep-tips-health",
             },
             {
                 "title": "올여름 볼만한 기대작 영화들",
@@ -429,12 +441,16 @@ async def seed_database():
                 "content": "팝콘 준비하세요! 이번 시즌 가장 기대되는 영화들을 소개합니다. 슈퍼히어로 대작부터 따뜻한 감동 애니메이션까지 모두를 위한 작품이 준비되어 있습니다. 이번 여름 극장에서 볼 수 있는 필람 영화 목록을 확인해보세요.",
                 "category": "엔터테인먼트",
                 "image_url": "https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&q=80&w=800",
+                "url": "https://news.google.com/articles/example-summer-movies-entertainment",
             },
         ]
 
-        for post_data in seed_posts:
+        for i, post_data in enumerate(seed_posts):
             post = Post(**post_data)
+            # 0.1초 간격으로 created_at 설정 (역순으로 최신이 먼저 오도록)
+            post.created_at = datetime.utcnow() - timedelta(seconds=i * 0.1)
             db.add(post)
+            time.sleep(0.1)  # 실제 시간 간격 두기
         db.commit()
         print("Database seeded with initial posts")
     except Exception as e: 
@@ -761,8 +777,44 @@ async def fetch_latest_news(db: Session = Depends(get_db)):
     """최신 뉴스를 가져와서 저장"""
     await fetch_and_store_news(db)
     return {"message": "Latest news fetched and stored successfully"}
-    
-        
+
+@app.post("/api/posts/{post_id}/like")
+async def like_post(post_id: int, db: Session = Depends(get_db)):
+    """게시물 추천"""
+    db_post = db.query(Post).filter(Post.id == post_id).first()
+    if not db_post:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    db_post.likes += 1
+    db.commit()
+    db.refresh(db_post)
+    return {"success": True}
+
+@app.post("/api/posts/{post_id}/view")
+async def view_post(post_id: int, db: Session = Depends(get_db)):
+    """게시물 조회수 증가"""
+    db_post = db.query(Post).filter(Post.id == post_id).first()
+    if not db_post:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    db_post.views += 1
+    db.commit()
+    db.refresh(db_post)
+    return {"success": True}
+
+@app.post("/api/posts/{post_id}/dislike")
+async def dislike_post(post_id: int, db: Session = Depends(get_db)):
+    """게시물 싫어요"""
+    db_post = db.query(Post).filter(Post.id == post_id).first()
+    if not db_post:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    db_post.dislikes += 1
+    db.commit()
+    db.refresh(db_post)
+    return {"success": True}
+
+
 
 # 간단한 서버 실행
 if __name__ == "__main__":

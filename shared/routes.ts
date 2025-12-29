@@ -46,6 +46,30 @@ export const api = {
         400: errorSchemas.validation,
       },
     },
+    like: {
+      method: "POST" as const,
+      path: "/api/posts/{id}/like",
+      responses: {
+        200: z.object({ success: z.boolean() }),
+        404: errorSchemas.notFound,
+      },
+    },
+    dislike: {
+      method: "POST" as const,
+      path: "/api/posts/{id}/dislike",
+      responses: {
+        200: z.object({ success: z.boolean() }),
+        404: errorSchemas.notFound,
+      },
+    },
+    view: {
+      method: "POST" as const,
+      path: "/api/posts/{id}/view",
+      responses: {
+        200: z.object({ success: z.boolean() }),
+        404: errorSchemas.notFound,
+      },
+    },
   },
 };
 

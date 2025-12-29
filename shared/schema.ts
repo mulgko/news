@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -9,7 +9,11 @@ export const posts = pgTable("posts", {
   content: text("content").notNull(),
   category: text("category").notNull(),
   image_url: text("image_url").notNull(),
+  url: text("url"),
   created_at: timestamp("created_at").defaultNow(),
+  likes: integer("likes").default(0),
+  dislikes: integer("dislikes").default(0),
+  views: integer("views").default(0),
 });
 
 export const insertPostSchema = createInsertSchema(posts).omit({

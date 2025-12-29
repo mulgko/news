@@ -1,11 +1,13 @@
 import { db } from "./db";
 import { posts, type InsertPost, type Post } from "@shared/schema";
-import { eq, ilike, or } from "drizzle-orm";
+import { eq, ilike, or, sql } from "drizzle-orm";
 
 export interface IStorage {
   getPosts(options?: { category?: string; search?: string }): Promise<Post[]>;
   getPost(id: number): Promise<Post | undefined>;
   createPost(post: InsertPost): Promise<Post>;
+  incrementViews(id: number): Promise<void>;
+  incrementLikes(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -38,6 +40,20 @@ export class DatabaseStorage implements IStorage {
   async createPost(post: InsertPost): Promise<Post> {
     const [newPost] = await db.insert(posts).values(post).returning();
     return newPost;
+  }
+
+  async incrementViews(id: number): Promise<void> {
+    await db
+      .update(posts)
+      .set({ views: sql`${posts.views} + 1` })
+      .where(eq(posts.id, id));
+  }
+
+  async incrementLikes(id: number): Promise<void> {
+    await db
+      .update(posts)
+      .set({ likes: sql`${posts.likes} + 1` })
+      .where(eq(posts.id, id));
   }
 }
 
