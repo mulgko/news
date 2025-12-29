@@ -113,4 +113,33 @@
   .link-underline:hover::after {
     @apply scale-x-100 origin-left;
   }
+
+  /* Shimmer animation for skeleton loading */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.1) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  .skeleton {
+    @apply bg-muted rounded animate-pulse;
+  }
+
+  .skeleton-shimmer {
+    @apply bg-muted rounded shimmer;
+  }
 }

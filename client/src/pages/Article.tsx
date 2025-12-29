@@ -13,6 +13,90 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 
+const PostDetailSkeleton = () => {
+  return (
+    <div className="h-screen bg-background flex flex-col overflow-y-auto">
+      {/* Header 영역 (기존 Header 컴포넌트가 있다면 그대로 사용하거나 스켈레톤 처리) */}
+      <div className="w-full h-16 border-b border-border flex items-center px-6">
+        <div className="w-32 h-6 bg-muted animate-pulse rounded"></div>
+      </div>
+
+      <main className="flex-1 max-w-2xl mx-auto px-4 py-12 w-full">
+        {/* Back Button Skeleton */}
+        <div className="mb-6">
+          <div className="w-8 h-8 bg-muted animate-pulse rounded-full"></div>
+        </div>
+
+        {/* Meta info Skeleton */}
+        <div className="flex items-center gap-4 pb-4">
+          <div className="w-24 h-4 bg-muted animate-pulse rounded"></div>
+        </div>
+
+        {/* Title Skeleton */}
+        <div className="border-b border-border mb-8">
+          <div className="w-full h-10 bg-muted animate-pulse rounded mb-3"></div>
+          <div className="w-2/3 h-10 bg-muted animate-pulse rounded mb-8"></div>
+        </div>
+
+        {/* AI Summary Section Skeleton */}
+        <div className="py-8">
+          <div className="bg-muted/30 rounded-lg p-6 border-l-4 border-muted">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-5 h-5 bg-muted animate-pulse rounded-full"></div>
+              <div className="w-20 h-6 bg-muted animate-pulse rounded"></div>
+            </div>
+            <div className="space-y-3">
+              <div className="w-full h-4 bg-muted animate-pulse rounded"></div>
+              <div className="w-full h-4 bg-muted animate-pulse rounded"></div>
+              <div className="w-4/5 h-4 bg-muted animate-pulse rounded"></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Like/Dislike Button Section Skeleton */}
+        <div className="py-4">
+          <div className="flex gap-8 justify-center">
+            {/* Like Button */}
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-12 h-12 bg-muted animate-pulse rounded-full"></div>
+              <div className="w-14 h-3 bg-muted animate-pulse rounded"></div>
+            </div>
+            {/* Dislike Button */}
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-12 h-12 bg-muted animate-pulse rounded-full"></div>
+              <div className="w-14 h-3 bg-muted animate-pulse rounded"></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Content Section Skeleton */}
+        <article className="py-12">
+          {/* Link Box Skeleton */}
+          <div className="mb-8 p-4 bg-muted/20 border border-muted rounded-lg">
+            <div className="w-32 h-4 bg-muted animate-pulse rounded"></div>
+          </div>
+
+          {/* Article Body Skeleton */}
+          <div className="space-y-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="space-y-3">
+                <div className="w-full h-4 bg-muted animate-pulse rounded"></div>
+                <div className="w-full h-4 bg-muted animate-pulse rounded"></div>
+                <div className="w-[90%] h-4 bg-muted animate-pulse rounded"></div>
+                {i === 3 ? (
+                  <div className="w-[40%] h-4 bg-muted animate-pulse rounded"></div>
+                ) : (
+                  <div className="w-[70%] h-4 bg-muted animate-pulse rounded"></div>
+                )}
+              </div>
+            ))}
+          </div>
+        </article>
+      </main>
+    </div>
+  );
+};
+
 // localStorage에서 좋아요/싫어요 누른 게시물 ID들 가져오기
 const getLikedPosts = (): Set<number> => {
   const stored = localStorage.getItem("likedPosts");
@@ -57,11 +141,7 @@ export default function Article() {
   const isDisliked = dislikedPosts.has(id);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-10 h-10 animate-spin text-primary" />
-      </div>
-    );
+    return <PostDetailSkeleton />;
   }
 
   if (error || !post) {
