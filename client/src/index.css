@@ -39,6 +39,31 @@
   --radius: 0.25rem;
 }
 
+.dark {
+  /* Dark mode colors */
+  --background: 224 71% 4%;
+  --foreground: 210 20% 98%;
+
+  --primary: 210 50% 60%;
+  --primary-foreground: 222 84% 5%;
+
+  --secondary: 217 32% 17%;
+  --secondary-foreground: 210 40% 98%;
+
+  --muted: 217 32% 17%;
+  --muted-foreground: 215 20% 65%;
+
+  --accent: 35 80% 55%;
+  --accent-foreground: 210 20% 98%;
+
+  --destructive: 0 62% 30%;
+  --destructive-foreground: 210 20% 98%;
+
+  --border: 217 32% 17%;
+  --input: 217 32% 17%;
+  --ring: 35 80% 55%;
+}
+
 @layer base {
   body {
     @apply bg-background text-foreground antialiased selection:bg-primary/20;
