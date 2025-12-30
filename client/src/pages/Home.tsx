@@ -1,7 +1,7 @@
 import { usePosts, useViewPost } from "@/hooks/use-posts";
 import { api, buildUrl } from "@shared/routes";
 import { Header } from "@/components/Header";
-import { Link, useSearch } from "wouter";
+import { Link, useSearch, useLocation } from "wouter";
 import { Loader2, Heart, Eye, ThumbsUp } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import type { Post } from "@shared/schema";
@@ -41,10 +41,13 @@ const PostItem = ({
         <div className="flex flex-col items-end gap-1 ml-2">
           <span className="text-sm text-muted-foreground">
             {post.created_at &&
-              new Date(post.created_at).toLocaleDateString("ko-KR", {
-                month: "short",
-                day: "numeric",
-              })}
+              (() => {
+                const date = new Date(post.created_at);
+                const year = date.getFullYear().toString().slice(-2);
+                const month = date.getMonth() + 1;
+                const day = date.getDate();
+                return `${year}.${month}.${day}`;
+              })()}
           </span>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
@@ -86,6 +89,7 @@ export default function Home() {
   const searchString = useSearch();
   const params = new URLSearchParams(searchString);
   const search = params.get("search") || undefined;
+  const [, setLocation] = useLocation();
 
   const { data: posts, isLoading } = usePosts({ search });
   const viewPost = useViewPost();
@@ -118,7 +122,7 @@ export default function Home() {
     // 이미 클릭한 포스트는 API 호출하지 않음 (중복 조회수 방지)
     if (clickedPosts.has(postId)) {
       // 이미 클릭했어도 페이지 이동은 허용
-      window.location.href = `/article/${postId}`;
+      setLocation(`/article/${postId}`);
       return;
     }
 
@@ -143,11 +147,11 @@ export default function Home() {
       }));
 
       // API 성공 후 페이지 이동
-      window.location.href = `/article/${postId}`;
+      setLocation(`/article/${postId}`);
     } catch (error) {
       console.error("Failed to increment view count:", error);
       // API 호출 실패 시 페이지 이동만 수행 (조회수는 증가하지 않음)
-      window.location.href = `/article/${postId}`;
+      setLocation(`/article/${postId}`);
     }
   };
 

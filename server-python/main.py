@@ -1343,10 +1343,7 @@ async def get_post(post_id, db: Session = Depends(get_db)):  # 타입 힌트 제
         print(f"DEBUG: Post with ID {post_id_int} not found")
         raise HTTPException(status_code=404, detail="Post not found")
 
-    # 조회수 증가
-    post.views += 1
-    db.commit()
-
+    # GET 요청에서는 조회수 증가하지 않음 - 오직 POST /view에서만 증가
     print(f"DEBUG: Found post: {post.id}, {post.title} (views: {post.views})")
     return post
 
