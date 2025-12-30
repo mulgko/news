@@ -152,7 +152,7 @@ export default function Article() {
           <div className="text-center">
             <h1 className="text-4xl font-display font-bold mb-4">404</h1>
             <p className="text-muted-foreground font-serif text-lg">
-              페이지를 찾을 수 없네요. 😰
+              404 Page Not Found
             </p>
           </div>
         </div>
@@ -200,10 +200,10 @@ export default function Article() {
               <Sparkles className="w-5 h-5 text-primary animate-pulse" />
               AI 요약
             </h2>
-            <div className="text-foreground/85 leading-relaxed">
+            <div className="text-foreground/85">
               {post.content ? (
                 <div className="space-y-2">
-                  <p className="text-base">
+                  <p className="text-base leading-loose">
                     {post.content.length > 200
                       ? `${post.content.substring(0, 200)}...`
                       : post.content}
@@ -309,11 +309,11 @@ export default function Article() {
           )}
 
           {/* Article Body */}
-          <div className="text-foreground leading-relaxed space-y-4">
+          <div className="text-foreground space-y-4">
             {post.content.split("\n").map(
               (paragraph, idx) =>
                 paragraph.trim() && (
-                  <p key={idx} className="text-base">
+                  <p key={idx} className="text-base leading-loose">
                     {paragraph}
                   </p>
                 )

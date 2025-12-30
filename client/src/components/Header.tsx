@@ -60,7 +60,35 @@ export function Header() {
           </h1>
         </Link>
 
-        <div className="flex items-center gap-4">
+        {/* 가운데 검색창 - 동글동글 iOS 스타일 */}
+        <div className="flex-1 max-w-md mx-8">
+          <div className="relative bg-muted/50 backdrop-blur-sm rounded-full border border-border/50 px-3 py-0 transition-all duration-200 focus-within:bg-background focus-within:border-primary/50 focus-within:shadow-sm">
+            <div className="relative">
+              <Input
+                type="text"
+                placeholder="검색하기.."
+                className="w-full bg-transparent border-0 pl-0 pr-8 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm placeholder:text-muted-foreground"
+                value={search}
+                onChange={(e) => handleSearchChange(e.target.value)}
+              />
+              <Search className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            </div>
+          </div>
+        </div>
+
+        {/* 오른쪽 토글들 */}
+        <div className="flex items-center gap-3">
+          {/* Theme Toggle Button */}
+          <button
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="relative flex items-center justify-center w-9 h-9 rounded-full hover:bg-secondary transition-colors focus:outline-none"
+            aria-label="테마 전환"
+          >
+            <Sun className="w-5 h-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute w-5 h-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+            <span className="sr-only">테마 전환</span>
+          </button>
+
           {/* 지역 선택 토글 - iOS 스타일 애니메이션 */}
           <div className="relative flex bg-muted/80 rounded-2xl p-0.5 shadow-inner border border-border/50 backdrop-blur-sm overflow-hidden">
             {/* 애니메이션되는 배경 */}
@@ -97,28 +125,6 @@ export function Header() {
               <Globe className="w-2.5 h-2.5" />
               세계
             </button>
-          </div>
-
-          {/* Theme Toggle Button */}
-          <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="relative flex items-center justify-center w-9 h-9 rounded-full hover:bg-secondary transition-colors focus:outline-none"
-            aria-label="테마 전환"
-          >
-            <Sun className="w-5 h-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <Moon className="absolute w-5 h-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-            <span className="sr-only">테마 전환</span>
-          </button>
-
-          <div className="relative">
-            <Input
-              type="text"
-              placeholder="검색하기.."
-              className="w-48 pl-4 pr-10 focus:ring-0 focus:outline-none focus:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
-              value={search}
-              onChange={(e) => handleSearchChange(e.target.value)}
-            />
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
           </div>
         </div>
       </div>

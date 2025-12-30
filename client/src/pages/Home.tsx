@@ -10,6 +10,7 @@ import type { Post } from "@shared/schema";
 const KOREA_CATEGORIES = [
   { id: "전체", label: "전체" },
   { id: "정치", label: "정치" },
+  { id: "경제", label: "경제" },
   { id: "과학", label: "과학" },
   { id: "연예", label: "연예" },
 ];
@@ -17,6 +18,7 @@ const KOREA_CATEGORIES = [
 const WORLD_CATEGORIES = [
   { id: "all", label: "All" },
   { id: "Politics", label: "Politics" },
+  { id: "Business", label: "Business" },
   { id: "Science", label: "Science" },
   { id: "Entertainment", label: "Entertainment" },
 ];
@@ -46,7 +48,7 @@ const PostItem = ({
       }`}
     >
       <div className="flex justify-between items-center">
-        <span className="text-sm w-[70%] truncate leading-tight">
+        <span className="text-sm w-[80%] truncate leading-tight">
           {post.title}
         </span>
         <div className="flex flex-col items-end gap-1 ml-2">
@@ -284,7 +286,7 @@ export default function Home() {
           </ul>
         ) : (
           <p className="text-center text-muted-foreground py-20">
-            검색 결과를 찾을 수 없습니다.
+            404 Page Not Found
           </p>
         )}
       </main>
