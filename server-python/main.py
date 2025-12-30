@@ -1336,12 +1336,14 @@ async def fetch_and_store_news(db: Session):
                     if region == "korea":
                         keyword_mapping = {
                             "정치": ["대통령", "정부", "국회", "정치", "선거", "장관", "국회의원", "총리", "의원", "민주", "국힘", "김병기", "강선우", "이혜훈", "내란", "공천", "의혹", "사퇴", "원내대표"],
+                            "경제": ["경제", "금융", "기업", "시장", "주식", "사업", "회사", "산업", "은행", "투자", "무역", "환율", "부동산", "코스피", "코스닥"],
                             "과학": ["연구", "발견", "과학", "우주", "환경", "기후", "연구원", "과학자", "반도체", "기술", "AI", "인공지능"],
                             "연예": ["영화", "드라마", "연예인", "가수", "콘서트", "배우", "예술", "넷플릭스", "게임", "포트나이트", "스타", "주식시세"],
                         }
                     else:
                         keyword_mapping = {
                             "Politics": ["president", "government", "politics", "election", "minister", "congress", "political", "policy", "diplomatic", "trump", "china", "taiwan"],
+                            "Business": ["economy", "finance", "company", "market", "stock", "business", "industry", "bank", "investment", "trading"],
                             "Science": ["research", "discovery", "science", "space", "environment", "climate", "scientist", "laboratory"],
                             "Entertainment": ["movie", "drama", "celebrity", "singer", "concert", "entertainment", "netflix", "actor", "artist"],
                         }
