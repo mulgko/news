@@ -865,7 +865,8 @@ except Exception as e:
     print(f"⚠️ .env 파일 로드 실패 (무시 가능): {e}")
 
 
-# 데이터베이스 설정 - SQLite를 강제로 사용
+# 데이터베이스 설정
+# SQLite 사용 (환경변수 무시)
 DATABASE_URL = "sqlite:///./news.db"
 
 engine = create_engine(DATABASE_URL, echo=True)
@@ -1152,11 +1153,9 @@ async def fetch_and_store_news(db: Session):
             articles = articles[:10]
 
         try:
-
             for i, article in enumerate(articles):
                 title = article.get("title", "").strip()
                 description = article.get("description", "").strip()
-                category = article.get("category", "general").lower().strip()  # 카테고리 정보 가져오기
 
                 # HTML 태그 제거만 하고 끝
                 if description:
@@ -1200,58 +1199,36 @@ async def fetch_and_store_news(db: Session):
                         print(f"💥 본문 추출 오류: {e}, RSS 요약 사용")
 
                 # Python DB에서 중복 체크 (제목 또는 URL 기준)
-                existing_post = None
+                try:
+                    existing_post = None
 
-                # 1. 제목으로 먼저 체크
-                existing_post = db.query(Post).filter(Post.title == title).first()
+                    # 1. 제목으로 먼저 체크
+                    existing_post = db.query(Post).filter(Post.title == title).first()
 
-                # 2. URL로도 체크 (news_url이 있는 경우)
-                if not existing_post and news_url:
-                    existing_post = db.query(Post).filter(Post.url == news_url).first()
+                    # 2. URL로도 체크 (news_url이 있는 경우)
+                    if not existing_post and news_url:
+                        existing_post = db.query(Post).filter(Post.url == news_url).first()
 
-                if existing_post:
-                    # 이미 존재하는 뉴스라면 업데이트
-                    print(f"🔄 Updating existing post: {title[:30]}... (ID: {existing_post.id})")
+                    if existing_post:
+                        # 이미 존재하는 뉴스라면 업데이트
+                        print(f"🔄 Updating existing post: {title[:30]}... (ID: {existing_post.id})")
 
-                    # Region별 카테고리 매핑 (업데이트 시)
-                    if region == "korea":
-                        category_mapping = {
-                            "business": "비즈니스",
-                            "technology": "기술",
-                            "science": "과학",
-                            "health": "건강",
-                            "entertainment": "엔터테인먼트",
-                            "general": "일반"
+                        # 업데이트할 필드들
+                        update_data = {
+                            'summary': description[:300],
+                            'content': content,
+                            'category': "일반",
                         }
-                        update_category = category_mapping.get(category, "일반")
-                    else:
-                        category_mapping = {
-                            "business": "Business",
-                            "technology": "Technology",
-                            "science": "Science",
-                            "health": "Health",
-                            "entertainment": "Entertainment",
-                            "general": "General"
-                        }
-                        update_category = category_mapping.get(category, "General")
 
-                    # 업데이트할 필드들
-                    update_data = {
-                        'summary': description[:300],
-                        'content': content,
-                        'category': update_category,
-                    }
+                        # 이미지 URL이 있으면 업데이트
+                        image_url = article.get("urlToImage", "")
+                        if image_url:
+                            update_data['image_url'] = image_url
 
-                    # 이미지 URL이 있으면 업데이트
-                    image_url = article.get("urlToImage", "")
-                    if image_url:
-                        update_data['image_url'] = image_url
+                        # URL이 있으면 업데이트
+                        if news_url:
+                            update_data['url'] = news_url
 
-                    # URL이 있으면 업데이트
-                    if news_url:
-                        update_data['url'] = news_url
-
-                    try:
                         for key, value in update_data.items():
                             setattr(existing_post, key, value)
 
@@ -1262,13 +1239,9 @@ async def fetch_and_store_news(db: Session):
                         db.commit()
                         print(f"✅ Updated existing post: {title[:30]}...")
                         continue  # 저장하지 않고 다음으로 진행
-                    except Exception as update_error:
-                        db.rollback()
-                        print(f"💥 Error updating existing post: {update_error}")
-                        continue
 
-                # 새로운 뉴스인 경우 저장
-                full_content = content
+                    # 새로운 뉴스인 경우 저장
+                    full_content = content
                 if news_url:
                     full_content += f"\n\n🔗 전체 기사 보기: {news_url}"
                     print(f"📎 링크 추가됨: {news_url}")
@@ -1279,106 +1252,32 @@ async def fetch_and_store_news(db: Session):
                 if not image_url:
                     image_url = "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=800"
 
-                # Region별 카테고리 매핑 (한국어 vs 영어)
-                if region == "korea":
-                    # 한국 뉴스: 한국어 카테고리
-                    category_mapping = {
-                        "business": "비즈니스",
-                        "technology": "기술",
-                        "science": "과학",
-                        "health": "건강",
-                        "entertainment": "엔터테인먼트",
-                        "sports": "스포츠",
-                        "politics": "정치",
-                        "world": "국제",
-                        "nation": "국내",
-                        "general": "일반",
-                        "tech": "기술",
-                        "medical": "건강",
-                        "economy": "비즈니스",
-                        "finance": "비즈니스",
-                        "showbiz": "엔터테인먼트",
-                        "celebrity": "엔터테인먼트",
-                        "research": "과학",
-                        "environment": "과학",
-                    }
-                    final_category = category_mapping.get(category, "일반")
-                else:
-                    # 세계 뉴스: 영어 카테고리
-                    category_mapping = {
-                        "business": "Business",
-                        "technology": "Technology",
-                        "science": "Science",
-                        "health": "Health",
-                        "entertainment": "Entertainment",
-                        "sports": "Sports",
-                        "politics": "Politics",
-                        "world": "World",
-                        "nation": "Nation",
-                        "general": "General",
-                        "tech": "Technology",
-                        "medical": "Health",
-                        "economy": "Business",
-                        "finance": "Business",
-                        "showbiz": "Entertainment",
-                        "celebrity": "Entertainment",
-                        "research": "Science",
-                        "environment": "Science",
-                    }
-                    final_category = category_mapping.get(category, "General")
-
-                # 제목/내용으로 키워드 분석 (항상 수행하여 더 정확한 분류)
-                if title or description:
-                    text_to_analyze = (title + " " + description).lower()
-
-                    # 키워드 기반 카테고리 분류 (한국어 + 영어)
-                    # 새로운 카테고리에 맞는 간단한 키워드 매핑
-                    if region == "korea":
-                        keyword_mapping = {
-                            "정치": ["대통령", "정부", "국회", "정치", "선거", "장관", "국회의원", "총리", "의원", "민주", "국힘", "김병기", "강선우", "이혜훈", "내란", "공천", "의혹", "사퇴", "원내대표"],
-                            "과학": ["연구", "발견", "과학", "우주", "환경", "기후", "연구원", "과학자", "반도체", "기술", "AI", "인공지능"],
-                            "연예": ["영화", "드라마", "연예인", "가수", "콘서트", "배우", "예술", "넷플릭스", "게임", "포트나이트", "스타", "주식시세"],
-                        }
-                    else:
-                        keyword_mapping = {
-                            "Politics": ["president", "government", "politics", "election", "minister", "congress", "political", "policy", "diplomatic", "trump", "china", "taiwan"],
-                            "Science": ["research", "discovery", "science", "space", "environment", "climate", "scientist", "laboratory"],
-                            "Entertainment": ["movie", "drama", "celebrity", "singer", "concert", "entertainment", "netflix", "actor", "artist"],
-                        }
-
-                    for cat, keywords in keyword_mapping.items():
-                        if any(keyword in text_to_analyze for keyword in keywords):
-                            final_category = cat
-                            print(f"🎯 키워드 분석으로 카테고리 결정: {cat} (region: {region})")
-                            break
-
-                print(f"📂 최종 카테고리: {final_category} (원본: {category}, region: {region})")
+                # 주요 뉴스는 카테고리를 "일반"으로 설정
+                korean_category = "일반"
 
                 # Python Post 모델 생성 및 저장 (region 정보 추가)
                 new_post = Post(
                     title=title[:200],
                     summary=description[:300],
                     content=full_content,
-                    category=final_category,
+                    category=korean_category,
                     region=region,  # region 정보 추가
                     image_url=image_url,
                     url=news_url if news_url else None
                 )
 
                 print(f"📤 DB 저장 시도: {title[:30]}...")
-                try:
-                    db.add(new_post)
-                    db.commit()
-                    db.refresh(new_post)
-                    total_saved += 1
-                    print(f"✅ Saved to Python DB: {title[:30]}... (ID: {new_post.id})")
-                except Exception as save_error:
-                    db.rollback()
-                    print(f"💥 Error saving to Python DB: {save_error}")
+                db.add(new_post)
+                db.commit()
+                db.refresh(new_post)
+                total_saved += 1
+                print(f"✅ Saved to Python DB: {title[:30]}... (ID: {new_post.id})")
 
+                except Exception as e:
+                    db.rollback()
+                    print(f"💥 Error processing article: {e}")
         except Exception as e:
-            print(f"💥 Error fetching {region} news: {e}")
-            continue
+            print(f"💥 Error processing {region} news: {e}")
 
     print(f"🎉 Total processed: {total_processed}, Total saved to Python DB: {total_saved}")  # 최종 결과 로그
     print("News fetched and stored in Python database successfully")

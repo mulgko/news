@@ -4,10 +4,15 @@ import { api, buildUrl, type PostInput } from "@shared/routes";
 // API 베이스 URL 설정
 const API_BASE_URL = "http://127.0.0.1:8000";
 
-export function usePosts(params?: { category?: string; search?: string }) {
+export function usePosts(params?: {
+  category?: string;
+  region?: string;
+  search?: string;
+}) {
   const queryKey = [
     api.posts.list.path,
     params?.category,
+    params?.region,
     params?.search,
   ].filter(Boolean);
 
@@ -18,6 +23,7 @@ export function usePosts(params?: { category?: string; search?: string }) {
       const url = new URL(API_BASE_URL + api.posts.list.path);
       if (params?.category)
         url.searchParams.append("category", params.category);
+      if (params?.region) url.searchParams.append("region", params.region);
       if (params?.search) url.searchParams.append("search", params.search);
 
       const res = await fetch(url.toString(), { credentials: "include" });

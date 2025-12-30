@@ -8,6 +8,7 @@ export const posts = pgTable("posts", {
   summary: text("summary").notNull(),
   content: text("content").notNull(),
   category: text("category").notNull(),
+  region: text("region").notNull(),
   image_url: text("image_url").notNull(),
   url: text("url"),
   created_at: timestamp("created_at").defaultNow(),

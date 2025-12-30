@@ -6,14 +6,25 @@ import { Loader2, Heart, Eye, ThumbsUp } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import type { Post } from "@shared/schema";
 
-const CATEGORIES = [
+// 지역별 카테고리 정의
+const KOREA_CATEGORIES = [
   { id: "전체", label: "전체" },
-  { id: "기술", label: "기술" },
-  { id: "비즈니스", label: "비즈니스" },
+  { id: "정치", label: "정치" },
   { id: "과학", label: "과학" },
-  { id: "건강", label: "건강" },
-  { id: "엔터테인먼트", label: "엔터테인먼트" },
+  { id: "연예", label: "연예" },
 ];
+
+const WORLD_CATEGORIES = [
+  { id: "all", label: "All" },
+  { id: "Politics", label: "Politics" },
+  { id: "Science", label: "Science" },
+  { id: "Entertainment", label: "Entertainment" },
+];
+
+// 지역에 따른 카테고리 반환 함수
+const getCategoriesForRegion = (region: string) => {
+  return region === "korea" ? KOREA_CATEGORIES : WORLD_CATEGORIES;
+};
 
 // 게시물 아이템 컴포넌트
 const PostItem = ({
@@ -65,10 +76,11 @@ const PostItem = ({
   </li>
 );
 
-// localStorage에서 초기값 읽기 함수
-const getInitialCategory = () => {
+// localStorage에서 초기값 읽기 함수 (지역에 따라 다름)
+const getInitialCategory = (region: string) => {
   const stored = localStorage.getItem("selectedCategory");
-  return stored || "전체";
+  const defaultCategory = region === "korea" ? "전체" : "all";
+  return stored || defaultCategory;
 };
 
 const getInitialClickedPosts = (): Set<number> => {
@@ -91,7 +103,54 @@ export default function Home() {
   const search = params.get("search") || undefined;
   const [, setLocation] = useLocation();
 
-  const { data: posts, isLoading } = usePosts({ search });
+  // 선택된 지역 상태 - localStorage에서 실시간으로 읽기
+  const [selectedRegion, setSelectedRegion] = useState<string>(() => {
+    const stored = localStorage.getItem("selectedRegion");
+    return stored || "korea";
+  });
+
+  // localStorage 변경 감지 및 상태 업데이트
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "selectedRegion" && e.newValue) {
+        setSelectedRegion(e.newValue);
+      }
+    };
+
+    const handleRegionChanged = (e: CustomEvent<string>) => {
+      setSelectedRegion(e.detail);
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener(
+      "regionChanged",
+      handleRegionChanged as EventListener
+    );
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener(
+        "regionChanged",
+        handleRegionChanged as EventListener
+      );
+    };
+  }, []);
+
+  // 선택된 카테고리 상태 - 지역에 따라 초기값 설정
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+
+  const { data: posts, isLoading } = usePosts(
+    selectedCategory
+      ? {
+          search,
+          region: selectedRegion,
+          category:
+            selectedCategory === (selectedRegion === "korea" ? "전체" : "all")
+              ? undefined
+              : selectedCategory,
+        }
+      : { search, region: selectedRegion }
+  );
   const viewPost = useViewPost();
 
   // 클릭한 게시물 ID들을 저장할 상태 - 초기값 localStorage에서 로드
@@ -99,9 +158,12 @@ export default function Home() {
     getInitialClickedPosts
   );
 
-  // 선택된 카테고리 상태 - 초기값 localStorage에서 로드
-  const [selectedCategory, setSelectedCategory] =
-    useState<string>(getInitialCategory);
+  // 지역과 카테고리 초기화 useEffect
+  useEffect(() => {
+    const defaultCategory = selectedRegion === "korea" ? "전체" : "all";
+    setSelectedCategory(defaultCategory);
+    localStorage.setItem("selectedCategory", defaultCategory);
+  }, [selectedRegion]);
 
   // 조회수 정보를 로컬로 관리 (순서 변경 방지)
   const [viewCounts, setViewCounts] = useState<Record<number, number>>({});
@@ -161,6 +223,9 @@ export default function Home() {
     localStorage.setItem("selectedCategory", category);
   };
 
+  // 현재 지역에 맞는 카테고리 가져오기
+  const currentCategories = getCategoriesForRegion(selectedRegion);
+
   return (
     <div className="min-h-screen bg-background overflow-y-scroll">
       <Header />
@@ -169,7 +234,7 @@ export default function Home() {
       {!search && (
         <div className="max-w-2xl mx-auto px-4 py-6">
           <div className="flex flex-wrap gap-6 mb-6">
-            {CATEGORIES.map((category) => (
+            {currentCategories.map((category) => (
               <button
                 key={category.id}
                 onClick={() => handleCategoryChange(category.id)}
@@ -196,7 +261,8 @@ export default function Home() {
             {posts
               .filter(
                 (post) =>
-                  selectedCategory === "전체" ||
+                  selectedCategory ===
+                    (selectedRegion === "korea" ? "전체" : "all") ||
                   post.category === selectedCategory
               )
               .map((post) => {
