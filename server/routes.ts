@@ -136,5 +136,15 @@ export async function registerRoutes(
     }
   });
 
+  app.post(api.posts.dislike.path, async (req, res) => {
+    const post = await storage.getPost(Number(req.params.id));
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    await storage.incrementDislikes(Number(req.params.id));
+    res.json({ success: true });
+  });
+
   return httpServer;
 }

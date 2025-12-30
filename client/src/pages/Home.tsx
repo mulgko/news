@@ -26,17 +26,16 @@ const PostItem = ({
   onPostClick: (postId: number) => void;
 }) => (
   <li key={post.id}>
-    <Link
-      href={`/article/${post.id}`}
+    <div
       onClick={() => onPostClick(post.id)}
-      className={`block py-3 border-b border-border/30 hover:border-primary transition-colors ${
+      className={`block py-3 border-b border-border/30 hover:border-primary transition-colors cursor-pointer ${
         isClicked
           ? "text-gray-400 hover:text-gray-500"
           : "text-foreground hover:text-primary"
       }`}
     >
       <div className="flex justify-between items-center">
-        <span className="text-lg w-[70%] truncate leading-tight">
+        <span className="text-sm w-[70%] truncate leading-tight">
           {post.title}
         </span>
         <div className="flex flex-col items-end gap-1 ml-2">
@@ -59,7 +58,7 @@ const PostItem = ({
           </div>
         </div>
       </div>
-    </Link>
+    </div>
   </li>
 );
 
@@ -116,6 +115,13 @@ export default function Home() {
 
   // 게시물 클릭 핸들러
   const handlePostClick = async (postId: number) => {
+    // 이미 클릭한 포스트는 API 호출하지 않음 (중복 조회수 방지)
+    if (clickedPosts.has(postId)) {
+      // 이미 클릭했어도 페이지 이동은 허용
+      window.location.href = `/article/${postId}`;
+      return;
+    }
+
     const newClickedPosts = new Set(clickedPosts);
     newClickedPosts.add(postId);
     setClickedPosts(newClickedPosts);
@@ -130,13 +136,18 @@ export default function Home() {
     try {
       await viewPost.mutateAsync(postId);
 
-      // 로컬 조회수 상태 업데이트 (UI 즉시 반영)
+      // API 호출 성공 시에만 로컬 조회수 상태 업데이트 (UI 즉시 반영)
       setViewCounts((prev) => ({
         ...prev,
         [postId]: (prev[postId] || 0) + 1,
       }));
+
+      // API 성공 후 페이지 이동
+      window.location.href = `/article/${postId}`;
     } catch (error) {
       console.error("Failed to increment view count:", error);
+      // API 호출 실패 시 페이지 이동만 수행 (조회수는 증가하지 않음)
+      window.location.href = `/article/${postId}`;
     }
   };
 
@@ -183,11 +194,6 @@ export default function Home() {
                 (post) =>
                   selectedCategory === "전체" ||
                   post.category === selectedCategory
-              )
-              .sort(
-                (a, b) =>
-                  new Date(b.created_at || 0).getTime() -
-                  new Date(a.created_at || 0).getTime()
               )
               .map((post) => {
                 const isClicked = clickedPosts.has(post.id);

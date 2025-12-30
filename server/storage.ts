@@ -8,6 +8,7 @@ export interface IStorage {
   createPost(post: InsertPost): Promise<Post>;
   incrementViews(id: number): Promise<void>;
   incrementLikes(id: number): Promise<void>;
+  incrementDislikes(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -53,6 +54,13 @@ export class DatabaseStorage implements IStorage {
     await db
       .update(posts)
       .set({ likes: sql`${posts.likes} + 1` })
+      .where(eq(posts.id, id));
+  }
+
+  async incrementDislikes(id: number): Promise<void> {
+    await db
+      .update(posts)
+      .set({ dislikes: sql`${posts.dislikes} + 1` })
       .where(eq(posts.id, id));
   }
 }
