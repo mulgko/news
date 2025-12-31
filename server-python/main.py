@@ -1258,6 +1258,7 @@ async def fetch_and_store_news(db: Session):
                         # content에 링크 추가 (이미 존재하는 경우에도 업데이트)
                         if news_url and "🔗 전체 기사 보기:" not in existing_post.content:
                             existing_post.content += f"\n\n🔗 전체 기사 보기: {news_url}"
+                            existing_post.content += "\n\n© 모든 권리는 원본 저작권자와 출처에 있습니다."
 
                         db.commit()
                         print(f"✅ Updated existing post: {title[:30]}...")
@@ -1271,6 +1272,7 @@ async def fetch_and_store_news(db: Session):
                 full_content = content
                 if news_url:
                     full_content += f"\n\n🔗 전체 기사 보기: {news_url}"
+                    full_content += "\n\n© 모든 권리는 원본 저작권자와 출처에 있습니다."
                     print(f"📎 링크 추가됨: {news_url}")
                 else:
                     print("⚠️ news_url이 비어있음")

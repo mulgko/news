@@ -40,27 +40,27 @@
 }
 
 .dark {
-  /* Dark mode colors */
-  --background: 224 71% 4%;
-  --foreground: 210 20% 98%;
+  /* Dark mode colors - 눈부심 적은 부드러운 다크모드 */
+  --background: 224 71% 8%;
+  --foreground: 210 20% 95%;
 
-  --primary: 210 50% 60%;
+  --primary: 210 50% 65%;
   --primary-foreground: 222 84% 5%;
 
-  --secondary: 217 32% 17%;
+  --secondary: 217 32% 20%;
   --secondary-foreground: 210 40% 98%;
 
-  --muted: 217 32% 17%;
-  --muted-foreground: 215 20% 65%;
+  --muted: 217 32% 18%;
+  --muted-foreground: 215 20% 70%;
 
   --accent: 35 80% 55%;
   --accent-foreground: 210 20% 98%;
 
-  --destructive: 0 62% 30%;
+  --destructive: 0 62% 35%;
   --destructive-foreground: 210 20% 98%;
 
-  --border: 217 32% 17%;
-  --input: 217 32% 17%;
+  --border: 217 32% 22%;
+  --input: 217 32% 20%;
   --ring: 35 80% 55%;
 }
 
@@ -141,5 +141,36 @@
 
   .skeleton-shimmer {
     @apply bg-muted rounded shimmer;
+  }
+
+  /* Advertisement Slider Cube Animation */
+  .cube-container {
+    transform-style: preserve-3d;
+  }
+
+  .cube-container:hover {
+    animation-play-state: paused;
+  }
+
+  @keyframes rotateAds {
+    0%,
+    20% {
+      transform: rotateX(0deg);
+    }
+    25%,
+    45% {
+      transform: rotateX(-90deg);
+    }
+    50%,
+    70% {
+      transform: rotateX(-180deg);
+    }
+    75%,
+    95% {
+      transform: rotateX(-270deg);
+    }
+    100% {
+      transform: rotateX(-360deg);
+    }
   }
 }
