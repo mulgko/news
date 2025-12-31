@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "license": "MIT",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "dev": "concurrently \"cd server-python && python main.py\" \"vite\"",
     "dev:server": "cd server-python && python3 main.py",
