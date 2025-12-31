@@ -1,5 +1,7 @@
 from fastapi import FastAPI, HTTPException, Query, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, field_serializer
 from datetime import datetime
 from typing import Optional, List, AsyncGenerator, Dict
@@ -989,11 +991,37 @@ app = FastAPI(title="News API", version="1.0.0", lifespan=lifespan)
 # CORS 설정 (필요시)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],  # Vite 기본 포트
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "*"],  # Vite 기본 포트 + 프로덕션용
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# React 정적 파일 서빙 (프로덕션용)
+try:
+    app.mount("/assets", StaticFiles(directory="dist/public/assets"), name="assets")
+    app.mount("/static", StaticFiles(directory="dist/public"), name="static")
+except RuntimeError:
+    print("⚠️  정적 파일 디렉토리를 찾을 수 없습니다 (개발 환경일 수 있음)")
+
+# React 앱의 모든 경로를 index.html로 리다이렉트 (SPA 지원)
+@app.get("/{full_path:path}")
+async def serve_react_app(full_path: str):
+    if full_path.startswith(("api/", "docs", "redoc", "openapi.json")):
+        raise HTTPException(status_code=404, detail="API endpoint not found")
+
+    # 정적 파일 서빙 시도
+    static_paths = ["dist/public", "public", "."]
+    for static_path in static_paths:
+        index_path = f"{static_path}/index.html"
+        try:
+            if os.path.exists(index_path):
+                return FileResponse(index_path, media_type="text/html")
+        except:
+            continue
+
+    # 기본적으로 index.html 서빙 (없으면 404)
+    raise HTTPException(status_code=404, detail="File not found")
 
 # 데이터베이스 세션 의존성
 def get_db():
