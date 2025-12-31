@@ -15,6 +15,7 @@ export const posts = pgTable("posts", {
   likes: integer("likes").default(0),
   dislikes: integer("dislikes").default(0),
   views: integer("views").default(0),
+  ai_summary: text("ai_summary"),
 });
 
 export const insertPostSchema = createInsertSchema(posts).omit({

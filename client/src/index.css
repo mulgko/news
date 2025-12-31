@@ -40,28 +40,28 @@
 }
 
 .dark {
-  /* Dark mode colors - 눈부심 적은 부드러운 다크모드 */
-  --background: 224 71% 8%;
-  --foreground: 210 20% 95%;
+  /* Dark mode colors - 고급스러운 심플 다크모드 */
+  --background: 222 84% 5%; /* 깊은 차콜 그레이 */
+  --foreground: 210 40% 98%; /* 밝고 선명한 텍스트 */
 
-  --primary: 210 50% 65%;
+  --primary: 210 60% 70%; /* 다크 모드용 밝은 크림 블루 */
   --primary-foreground: 222 84% 5%;
 
-  --secondary: 217 32% 20%;
+  --secondary: 217 33% 17%; /* 세련된 다크 그레이 */
   --secondary-foreground: 210 40% 98%;
 
-  --muted: 217 32% 18%;
-  --muted-foreground: 215 20% 70%;
+  --muted: 217 33% 15%; /* 더 깊은 muted */
+  --muted-foreground: 215 25% 75%; /* 부드러운 muted 텍스트 */
 
-  --accent: 35 80% 55%;
-  --accent-foreground: 210 20% 98%;
+  --accent: 45 93% 58%; /* 밝은 골드 */
+  --accent-foreground: 222 84% 5%;
 
-  --destructive: 0 62% 35%;
-  --destructive-foreground: 210 20% 98%;
+  --destructive: 0 75% 55%; /* 더 선명한 레드 */
+  --destructive-foreground: 210 40% 98%;
 
-  --border: 217 32% 22%;
-  --input: 217 32% 20%;
-  --ring: 35 80% 55%;
+  --border: 217 33% 20%; /* 세련된 보더 */
+  --input: 217 33% 17%;
+  --ring: 262 83% 58%; /* primary와 일치하는 링 */
 }
 
 @layer base {

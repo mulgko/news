@@ -18,6 +18,7 @@ from bs4 import BeautifulSoup
 import time
 import re
 import trafilatura
+import google.generativeai as genai
 
 # 간단 버전에서는 기본 세션만 사용
 session = requests.Session()
@@ -35,6 +36,54 @@ def get_sort_key(article):
             print(f"⚠️ Date parsing error for article: {article.get('title', '')[:30]}... - {e}")
             return datetime.min
     return datetime.min
+
+
+def generate_ai_summary_google(content: str, title: str = "") -> str:
+    """Google Gemini를 사용하여 뉴스 본문 요약 생성"""
+    if not content or len(content.strip()) < 50:
+        print("⚠️ 요약할 콘텐츠가 부족하거나 비어있음")
+        return ""
+
+    try:
+        # 환경변수에서 API 키 가져오기
+        api_key = os.getenv("GOOGLE_AI_API_KEY")
+        if not api_key or api_key == "your_google_ai_api_key_here" or api_key == "test_key":
+            print("⚠️ Google AI API 키가 설정되지 않았습니다. Google AI Studio에서 API 키를 생성하여 .env 파일에 GOOGLE_AI_API_KEY를 설정해주세요.")
+            print("   설정하지 않으면 AI 요약이 생성되지 않습니다.")
+            return ""
+
+        # API 키 설정
+        genai.configure(api_key=api_key)
+
+        # Gemini 모델 초기화 (다른 모델 시도)
+        model = genai.GenerativeModel('gemini-2.5-flash-lite')
+
+        prompt = f"""
+다음 뉴스 기사를 3-4줄로 간결하게 요약해주세요.
+핵심 내용과 중요한 사실만 포함하세요.
+
+제목: {title}
+
+본문:
+{content[:3000]}  # Google AI는 더 긴 텍스트도 처리 가능
+
+요약:
+"""
+
+        print(f"🤖 Google AI로 요약 생성 시도: {title[:50]}...")
+        response = model.generate_content(prompt)
+        summary = response.text.strip()
+
+        # 요약이 너무 길면 줄이기
+        if len(summary) > 500:
+            summary = summary[:500] + "..."
+
+        print(f"✅ Google AI 요약 생성 성공: {len(summary)}자")
+        return summary
+
+    except Exception as e:
+        print(f"💥 Google AI 요약 생성 실패: {e}")
+        return ""
 
 
 def decode_google_news_url(url: str, session=None) -> str:
@@ -888,6 +937,7 @@ class Post(Base):
     likes = Column(Integer, default=0)
     dislikes = Column(Integer, default=0)
     views = Column(Integer, default=0)
+    ai_summary = Column(Text, nullable=True)
 
 # Pydantic 스키마
 class PostBase(BaseModel):
@@ -898,6 +948,7 @@ class PostBase(BaseModel):
     region: str
     image_url: str
     url: Optional[str] = None
+    ai_summary: Optional[str] = None
 
 class PostCreate(PostBase):
     pass
@@ -908,6 +959,7 @@ class PostResponse(PostBase):
     likes: int = 0
     dislikes: int = 0
     views: int = 0
+    ai_summary: Optional[str] = None
 
     @field_serializer('created_at')
     def serialize_created_at(self, value: Optional[datetime]) -> Optional[str]:
@@ -1141,15 +1193,17 @@ async def fetch_and_store_news(db: Session):
     world_articles = client.get_world_news()
     print(f"📊 Found {len(world_articles)} World articles")
 
-    # 뉴스 처리
+    # 뉴스 처리 (한국 뉴스 5개, 세계 뉴스 5개로 제한)
     for articles, region in [(korea_articles, "korea"), (world_articles, "world")]:
-        # 최신순으로 정렬하고 10개로 제한
+        # 지역별 뉴스 개수 제한
+        limit = 5 if region == "korea" else 5  # 한국 5개, 세계 5개
+
         try:
-            articles = sorted(articles, key=get_sort_key, reverse=True)[:10]
+            articles = sorted(articles, key=get_sort_key, reverse=True)[:limit]
             print(f"✅ Processing {len(articles)} {region} articles")
         except Exception as sort_err:
             print(f"❌ Sorting failed for {region}: {sort_err}")
-            articles = articles[:10]
+            articles = articles[:limit]
 
         try:
 
@@ -1190,6 +1244,9 @@ async def fetch_and_store_news(db: Session):
                                     content = filtered_content
                                     print(f"✅ 본문 추출 및 정리 성공: {len(content)}자")
                                     print(f"📄 정리된 본문 미리보기: {content[:100]}...")
+
+                                    # AI 요약 생성
+                                    ai_summary = generate_ai_summary_google(content, title)
                                 else:
                                     print("⚠️ 정리 결과가 너무 짧음, RSS 요약 사용")
                             else:
@@ -1235,11 +1292,17 @@ async def fetch_and_store_news(db: Session):
                         }
                         update_category = category_mapping.get(category, "General")
 
+                    # AI 요약 생성 (콘텐츠가 업데이트될 때마다)
+                    update_ai_summary = ""
+                    if content and len(content.strip()) > 50:
+                        update_ai_summary = generate_ai_summary_google(content, title)
+
                     # 업데이트할 필드들
                     update_data = {
                         'summary': description[:300],
                         'content': content,
                         'category': update_category,
+                        'ai_summary': update_ai_summary if update_ai_summary else None,
                     }
 
                     # 이미지 URL이 있으면 업데이트
@@ -1366,7 +1429,8 @@ async def fetch_and_store_news(db: Session):
                     category=final_category,
                     region=region,  # region 정보 추가
                     image_url=image_url,
-                    url=news_url if news_url else None
+                    url=news_url if news_url else None,
+                    ai_summary=ai_summary if ai_summary else None
                 )
 
                 print(f"📤 DB 저장 시도: {title[:30]}...")

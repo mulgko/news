@@ -201,17 +201,13 @@ export default function Article() {
               AI 요약
             </h2>
             <div className="text-foreground/85">
-              {post.content ? (
+              {post.ai_summary ? (
                 <div className="space-y-2">
-                  <p className="text-base leading-loose">
-                    {post.content.length > 200
-                      ? `${post.content.substring(0, 200)}...`
-                      : post.content}
-                  </p>
+                  <p className="text-base leading-loose">{post.ai_summary}</p>
                 </div>
               ) : (
                 <p className="text-muted-foreground italic">
-                  요약을 생성할 수 없습니다.
+                  AI 요약을 생성하는 중입니다...
                 </p>
               )}
             </div>

@@ -6,8 +6,12 @@ import { Input } from "@/components/ui/input";
 
 export function Header() {
   const [search, setSearch] = useState("");
-  const [, setLocation] = useLocation();
+  const [location] = useLocation();
+  const [, setLocationNavigate] = useLocation();
   const { theme, setTheme } = useTheme();
+
+  // article 페이지에서는 지역 토글 비활성화
+  const isArticlePage = location.startsWith("/article/");
 
   // 지역 선택 상태 - localStorage와 동기화
   const getInitialRegion = () => {
@@ -45,9 +49,9 @@ export function Header() {
     setSearch(value);
     const trimmedValue = value.trim(); // 앞뒤 공백만 제거
     if (trimmedValue) {
-      setLocation(`/?search=${encodeURIComponent(trimmedValue)}`);
+      setLocationNavigate(`/?search=${encodeURIComponent(trimmedValue)}`);
     } else {
-      setLocation("/");
+      setLocationNavigate("/");
     }
   };
 
@@ -61,7 +65,7 @@ export function Header() {
         </Link>
 
         {/* 가운데 검색창 - 동글동글 iOS 스타일 */}
-        <div className="flex-1 max-w-md mx-8">
+        <div className="flex-1 max-w-full md:max-w-md mx-4 md:mx-8">
           <div className="relative bg-muted/50 backdrop-blur-sm rounded-full border border-border/50 px-3 py-0 transition-all duration-200 focus-within:bg-background focus-within:border-primary/50 focus-within:shadow-sm">
             <div className="relative">
               <Input
@@ -90,7 +94,13 @@ export function Header() {
           </button>
 
           {/* 지역 선택 토글 - iOS 스타일 애니메이션 */}
-          <div className="relative flex bg-muted/80 rounded-2xl p-0.5 shadow-inner border border-border/50 backdrop-blur-sm overflow-hidden">
+          <div
+            className={`relative flex rounded-2xl p-0.5 shadow-inner border backdrop-blur-sm overflow-hidden ${
+              isArticlePage
+                ? "bg-muted/40 border-border/30 opacity-50 cursor-not-allowed"
+                : "bg-muted/80 border-border/50"
+            }`}
+          >
             {/* 애니메이션되는 배경 */}
             <div
               className={`absolute top-0.5 bottom-0.5 bg-gradient-to-r rounded-xl shadow-lg transition-all duration-300 ease-in-out ${
@@ -102,12 +112,13 @@ export function Header() {
 
             {/* 한국 버튼 */}
             <button
-              onClick={() => handleRegionChange("korea")}
+              onClick={() => !isArticlePage && handleRegionChange("korea")}
+              disabled={isArticlePage}
               className={`relative flex items-center gap-0.5 px-2 py-1 text-xs font-medium rounded-sm transition-all duration-300 z-10 ${
                 selectedRegion === "korea"
                   ? "text-white"
                   : "text-muted-foreground hover:text-foreground"
-              }`}
+              } ${isArticlePage ? "cursor-not-allowed" : ""}`}
             >
               <MapPin className="w-2.5 h-2.5" />
               한국
@@ -115,12 +126,13 @@ export function Header() {
 
             {/* 세계 버튼 */}
             <button
-              onClick={() => handleRegionChange("world")}
+              onClick={() => !isArticlePage && handleRegionChange("world")}
+              disabled={isArticlePage}
               className={`relative flex items-center gap-0.5 px-2 py-1 text-xs font-medium rounded-sm transition-all duration-300 z-10 ${
                 selectedRegion === "world"
                   ? "text-white"
                   : "text-muted-foreground hover:text-foreground"
-              }`}
+              } ${isArticlePage ? "cursor-not-allowed" : ""}`}
             >
               <Globe className="w-2.5 h-2.5" />
               세계
