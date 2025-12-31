@@ -914,10 +914,14 @@ except Exception as e:
     print(f"⚠️ .env 파일 로드 실패 (무시 가능): {e}")
 
 
-# 데이터베이스 설정 - SQLite를 강제로 사용
-DATABASE_URL = "sqlite:///./news.db"
+# 데이터베이스 설정 - Neon PostgreSQL 사용
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@host:port/database")
 
-engine = create_engine(DATABASE_URL, echo=True)
+engine = create_engine(
+    DATABASE_URL,
+    echo=True,
+    pool_pre_ping=True,  # 연결 상태 확인
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
