@@ -1600,4 +1600,5 @@ if __name__ == "__main__":
             print(traceback.format_exc())
     else:
         port = int(os.getenv("PORT", 8000))
-        uvicorn.run(app, host="127.0.0.1", port=port)
+        host = os.getenv("HOST", "0.0.0.0")  # Railway에서는 0.0.0.0 사용
+        uvicorn.run(app, host=host, port=port)
