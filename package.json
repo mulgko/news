@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "license": "MIT",
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "dev": "concurrently \"cd server-python && python main.py\" \"vite\"",
     "dev:server": "cd server-python && python3 main.py",
@@ -113,6 +116,7 @@
     }
   },
   "optionalDependencies": {
+    "better-sqlite3": "^9.4.3",
     "bufferutil": "^4.0.8"
   }
 }
