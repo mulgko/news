@@ -2,7 +2,8 @@
 builder = "NIXPACKS"
 
 [deploy]
-startCommand = "python server-python/main.py"
+startCommand = "python main.py"
+sourceDir = "server-python"
 healthcheckPath = "/"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
