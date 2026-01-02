@@ -2,7 +2,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl, type PostInput } from "@shared/routes";
 
 // API 베이스 URL 설정
-const API_BASE_URL = "http://127.0.0.1:8000";
+// 로컬 개발: http://127.0.0.1:8000
+// 프로덕션: 빈 문자열 (같은 도메인 사용)
+const API_BASE_URL = import.meta.env.MODE === "development"
+  ? "http://127.0.0.1:8000"
+  : "";
 
 export function usePosts(params?: {
   category?: string;
