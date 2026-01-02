@@ -1004,24 +1004,39 @@ try:
 except RuntimeError:
     print("⚠️  정적 파일 디렉토리를 찾을 수 없습니다 (개발 환경일 수 있음)")
 
-# React 앱의 모든 경로를 index.html로 리다이렉트 (SPA 지원)
+# API 상태 확인 및 기본 응답
+@app.get("/")
+async def root():
+    return {
+        "message": "📰 News App Backend API",
+        "status": "running",
+        "version": "1.0.0",
+        "docs": "/docs",
+        "api_endpoints": {
+            "posts": "/api/posts",
+            "categories": "/api/categories",
+            "search": "/api/search"
+        },
+        "note": "프론트엔드는 별도 배포가 필요합니다"
+    }
+
 @app.get("/{full_path:path}")
-async def serve_react_app(full_path: str):
+async def catch_all(full_path: str):
     if full_path.startswith(("api/", "docs", "redoc", "openapi.json")):
         raise HTTPException(status_code=404, detail="API endpoint not found")
 
-    # 정적 파일 서빙 시도
-    static_paths = ["dist/public", "public", "."]
-    for static_path in static_paths:
-        index_path = f"{static_path}/index.html"
-        try:
-            if os.path.exists(index_path):
-                return FileResponse(index_path, media_type="text/html")
-        except:
-            continue
-
-    # 기본적으로 index.html 서빙 (없으면 404)
-    raise HTTPException(status_code=404, detail="File not found")
+    # API가 아닌 요청에 대한 기본 응답
+    return {
+        "message": "News App Backend API",
+        "status": "running",
+        "note": "프론트엔드 파일이 배포되지 않았습니다. API 엔드포인트를 사용해주세요.",
+        "available_endpoints": [
+            "/ (API 상태)",
+            "/docs (API 문서)",
+            "/api/posts (게시물)",
+            "/api/categories (카테고리)"
+        ]
+    }
 
 # 데이터베이스 세션 의존성
 def get_db():
