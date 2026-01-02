@@ -24,7 +24,10 @@ export function usePosts(params?: {
     queryKey,
     queryFn: async () => {
       // Build query string manually since fetch URL needs it
-      const url = new URL(API_BASE_URL + api.posts.list.path);
+      const url = new URL(
+        api.posts.list.path,
+        API_BASE_URL || window.location.origin
+      );
       if (params?.category)
         url.searchParams.append("category", params.category);
       if (params?.region) url.searchParams.append("region", params.region);
@@ -43,8 +46,9 @@ export function usePost(id: number) {
   return useQuery({
     queryKey: [api.posts.get.path, id],
     queryFn: async () => {
-      const url = API_BASE_URL + buildUrl(api.posts.get.path, { id });
-      const res = await fetch(url, { credentials: "include" });
+      const path = buildUrl(api.posts.get.path, { id });
+      const url = new URL(path, API_BASE_URL || window.location.origin);
+      const res = await fetch(url.toString(), { credentials: "include" });
       if (res.status === 404) return null;
       if (!res.ok) throw new Error("Failed to fetch post");
       return api.posts.get.responses[200].parse(await res.json());
@@ -56,7 +60,11 @@ export function useCreatePost() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: PostInput) => {
-      const res = await fetch(API_BASE_URL + api.posts.create.path, {
+      const url = new URL(
+        api.posts.create.path,
+        API_BASE_URL || window.location.origin
+      );
+      const res = await fetch(url.toString(), {
         method: api.posts.create.method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -80,13 +88,12 @@ export function useLikePost() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(
-        API_BASE_URL + buildUrl(api.posts.like.path, { id }),
-        {
-          method: api.posts.like.method,
-          credentials: "include",
-        }
-      );
+      const path = buildUrl(api.posts.like.path, { id });
+      const url = new URL(path, API_BASE_URL || window.location.origin);
+      const res = await fetch(url.toString(), {
+        method: api.posts.like.method,
+        credentials: "include",
+      });
       if (res.status === 404) {
         throw new Error("Post not found");
       }
@@ -106,13 +113,12 @@ export function useLikePost() {
 export function useViewPost() {
   return useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(
-        API_BASE_URL + buildUrl(api.posts.view.path, { id }),
-        {
-          method: api.posts.view.method,
-          credentials: "include",
-        }
-      );
+      const path = buildUrl(api.posts.view.path, { id });
+      const url = new URL(path, API_BASE_URL || window.location.origin);
+      const res = await fetch(url.toString(), {
+        method: api.posts.view.method,
+        credentials: "include",
+      });
       if (res.status === 404) {
         throw new Error("Post not found");
       }
@@ -128,13 +134,12 @@ export function useDislikePost() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(
-        API_BASE_URL + buildUrl(api.posts.dislike.path, { id }),
-        {
-          method: api.posts.dislike.method,
-          credentials: "include",
-        }
-      );
+      const path = buildUrl(api.posts.dislike.path, { id });
+      const url = new URL(path, API_BASE_URL || window.location.origin);
+      const res = await fetch(url.toString(), {
+        method: api.posts.dislike.method,
+        credentials: "include",
+      });
       if (res.status === 404) {
         throw new Error("Post not found");
       }
