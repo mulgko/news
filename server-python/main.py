@@ -991,7 +991,7 @@ app = FastAPI(title="News API", version="1.0.0", lifespan=lifespan)
 # CORS 설정 (필요시)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "*"],  # Vite 기본 포트 + 프로덕션용
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],  # Vite 기본 포트
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -1045,24 +1045,6 @@ async def health_check():
 #     if os.path.exists(index_file) and not request.url.path.startswith("/api"):
 #         return FileResponse(index_file)
 #     return JSONResponse({"detail": "Not Found"}, status_code=404)
-
-@app.get("/{full_path:path}")
-async def catch_all(full_path: str):
-    if full_path.startswith(("api/", "docs", "redoc", "openapi.json")):
-        raise HTTPException(status_code=404, detail="API endpoint not found")
-
-    # API가 아닌 요청에 대한 기본 응답
-    return {
-        "message": "News App Backend API",
-        "status": "running",
-        "note": "프론트엔드 파일이 배포되지 않았습니다. API 엔드포인트를 사용해주세요.",
-        "available_endpoints": [
-            "/ (API 상태)",
-            "/docs (API 문서)",
-            "/api/posts (게시물)",
-            "/api/categories (카테고리)"
-        ]
-    }
 
 # 데이터베이스 세션 의존성
 def get_db():
@@ -1619,8 +1601,27 @@ async def fetch_latest_news(db: Session = Depends(get_db)):
     """최신 뉴스를 가져와서 저장"""
     await fetch_and_store_news(db)
     return {"message": "Latest news fetched and stored successfully"}
-    
-        
+
+
+# Catch-all 핸들러 (모든 API 라우트 정의 후 마지막에 배치)
+@app.get("/{full_path:path}")
+async def catch_all(full_path: str):
+    if full_path.startswith(("api/", "docs", "redoc", "openapi.json")):
+        raise HTTPException(status_code=404, detail="API endpoint not found")
+
+    # API가 아닌 요청에 대한 기본 응답
+    return {
+        "message": "News App Backend API",
+        "status": "running",
+        "note": "프론트엔드 파일이 배포되지 않았습니다. API 엔드포인트를 사용해주세요.",
+        "available_endpoints": [
+            "/ (API 상태)",
+            "/docs (API 문서)",
+            "/api/posts (게시물)",
+            "/api/categories (카테고리)"
+        ]
+    }
+
 
 # 간단한 서버 실행
 if __name__ == "__main__":

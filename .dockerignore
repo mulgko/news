@@ -1,0 +1,52 @@
+# Dependencies
+node_modules
+server-python/.venv
+server-python/__pycache__
+__pycache__
+
+# Build outputs (will be generated during build)
+dist
+
+# Environment files
+.env
+.env.local
+.env*.local
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+!README.md
+
+# Database files (don't include local DB in container)
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+*.test.js
+*.spec.js
+coverage
+
+# Misc
+.npmrc
