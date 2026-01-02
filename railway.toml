@@ -1,6 +1,5 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "cd server-python && pip install -r requirements.txt"
 
 [deploy]
 startCommand = "cd server-python && python main.py"
