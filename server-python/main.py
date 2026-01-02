@@ -916,10 +916,21 @@ except Exception as e:
     print(f"⚠️ .env 파일 로드 실패 (무시 가능): {e}")
 
 
-# 데이터베이스 설정 - SQLite를 강제로 사용
-DATABASE_URL = "sqlite:///./news.db"
+# 데이터베이스 설정
+# Railway에서는 DATABASE_URL 환경 변수 사용 (PostgreSQL)
+# 로컬에서는 SQLite 사용
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./news.db")
 
-engine = create_engine(DATABASE_URL, echo=True)
+# PostgreSQL URL 형식 수정 (postgresql:// → postgresql://)
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+# PostgreSQL의 경우 connect_args 설정 불필요, SQLite만 설정
+connect_args = {}
+if DATABASE_URL.startswith("sqlite"):
+    connect_args = {"check_same_thread": False}
+
+engine = create_engine(DATABASE_URL, echo=True, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
