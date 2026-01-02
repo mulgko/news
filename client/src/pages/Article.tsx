@@ -15,7 +15,7 @@ import { format } from "date-fns";
 
 const PostDetailSkeleton = () => {
   return (
-    <div className="h-screen bg-background flex flex-col overflow-y-auto">
+    <div className="min-h-screen bg-background flex flex-col overflow-y-scroll overflow-x-hidden">
       {/* Header 영역 (기존 Header 컴포넌트가 있다면 그대로 사용하거나 스켈레톤 처리) */}
       <div className="w-full h-16 border-b border-border flex items-center px-6">
         <div className="w-32 h-6 bg-muted animate-pulse rounded"></div>
@@ -162,10 +162,10 @@ export default function Article() {
   }
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-y-auto">
+    <div className="h-screen bg-background flex flex-col overflow-y-auto overflow-x-hidden">
       <Header />
 
-      <main className="flex-1 max-w-2xl mx-auto px-4 py-12">
+      <main className="flex-1 max-w-2xl mx-auto px-4 py-12 w-full">
         {/* Back Button */}
         <div className="mb-6">
           <Link
@@ -186,15 +186,13 @@ export default function Article() {
 
         {/* Simple Header */}
         <div className="bg-background border-b border-border">
-          <div className="max-w-3xl mx-auto">
-            <h1 className="text-3xl md:text-4xl font-bold font-display text-foreground md:leading-[1.5] mb-8">
-              {post.title}
-            </h1>
-          </div>
+          <h1 className="text-3xl md:text-4xl font-bold font-display text-foreground md:leading-[1.5] mb-8 break-words">
+            {post.title}
+          </h1>
         </div>
 
         {/* AI Summary Section */}
-        <div className="max-w-3xl mx-auto py-8">
+        <div className="py-8">
           <div className="bg-muted/30 rounded-lg p-6 border-l-4 border-primary">
             <h2 className="text-lg font-semibold text-foreground mb-3 font-display flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-primary animate-pulse" />
@@ -203,7 +201,7 @@ export default function Article() {
             <div className="text-foreground/85">
               {post.ai_summary ? (
                 <div className="space-y-2">
-                  <p className="text-base leading-loose">{post.ai_summary}</p>
+                  <p className="text-base leading-loose break-words">{post.ai_summary}</p>
                 </div>
               ) : (
                 <p className="text-muted-foreground italic">
@@ -215,7 +213,7 @@ export default function Article() {
         </div>
 
         {/* Like/Dislike Button Section */}
-        <div className="max-w-3xl mx-auto py-4">
+        <div className="py-4">
           <div className="flex gap-4 justify-center">
             {/* 좋아요 버튼 */}
             <button
@@ -288,7 +286,7 @@ export default function Article() {
         </div>
 
         {/* Content Section */}
-        <article className="max-w-3xl mx-auto py-12">
+        <article className="py-12">
           {/* Original Article Link */}
           {post.url && (
             <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
@@ -309,7 +307,7 @@ export default function Article() {
             {post.content.split("\n").map(
               (paragraph, idx) =>
                 paragraph.trim() && (
-                  <p key={idx} className="text-base leading-loose">
+                  <p key={idx} className="text-base leading-loose break-words">
                     {paragraph}
                   </p>
                 )
