@@ -139,7 +139,9 @@ export default function Home() {
   }, []);
 
   // 선택된 카테고리 상태 - 지역에 따라 초기값 설정
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>(() => {
+    return selectedRegion === "korea" ? "전체" : "all";
+  });
 
   const { data: posts, isLoading } = usePosts(
     selectedCategory
@@ -286,7 +288,7 @@ export default function Home() {
           </ul>
         ) : (
           <p className="text-center text-muted-foreground py-20">
-            404 Page Not Found
+            게시물이 없습니다
           </p>
         )}
       </main>
