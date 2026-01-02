@@ -997,28 +997,54 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# React 정적 파일 서빙 (프로덕션용)
-try:
-    app.mount("/assets", StaticFiles(directory="dist/public/assets"), name="assets")
-    app.mount("/static", StaticFiles(directory="dist/public"), name="static")
-except RuntimeError:
-    print("⚠️  정적 파일 디렉토리를 찾을 수 없습니다 (개발 환경일 수 있음)")
 
-# API 상태 확인 및 기본 응답
+# React 정적 파일 서빙 (프로덕션용)
+# 현재 파일(main.py)의 위치: project_root/server-python/main.py
+# 프론트엔드 빌드 위치: project_root/dist/public
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(BASE_DIR)
+DIST_DIR = os.path.join(ROOT_DIR, "dist", "public")
+ASSETS_DIR = os.path.join(DIST_DIR, "assets")
+
+# 자산 파일 마운트
+if os.path.exists(ASSETS_DIR):
+    app.mount("/assets", StaticFiles(directory=ASSETS_DIR), name="assets")
+else:
+    print(f"⚠️  Assets directory not found at {ASSETS_DIR}. Frontend might not be built.")
+
+# 루트 경로에서 index.html 서빙
 @app.get("/")
-async def root():
+async def serve_spa_root():
+    index_file = os.path.join(DIST_DIR, "index.html")
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
     return {
-        "message": "📰 News App Backend API",
-        "status": "running",
-        "version": "1.0.0",
-        "docs": "/docs",
-        "api_endpoints": {
-            "posts": "/api/posts",
-            "categories": "/api/categories",
-            "search": "/api/search"
-        },
-        "note": "프론트엔드는 별도 배포가 필요합니다"
+        "message": "Welcome to News App API",
+        "status": "Frontend not found. Please build the frontend.",
+        "path_checked": index_file
     }
+
+# API 상태 확인 (별도 경로)
+@app.get("/api/health")
+async def health_check():
+    return {
+        "status": "running",
+        "version": "1.0.0"
+    }
+
+# 프론트엔드 라우팅을 위한 Catch-all (API 경로는 제외됨)
+# 주의: 이 핸들러는 다른 모든 API 라우트 정의보다 아래에 있어야 합니다.
+# 현재 main.py 구조상 API 라우트들은 이 코드 블록 아래에 정의되어 있을 수 있으므로,
+# Catch-all은 파일의 맨 마지막 부분으로 이동하거나, API 라우트가 "/api"로 시작한다는 가정하에 충돌을 피해야 합니다.
+# 안전을 위해 여기서는 404 처리를 React에게 넘기는 대신, 명시적인 static serving만 처리하고
+# SPA History API 지원이 필요하면 아래 코드를 활성화하세요.
+# @app.exception_handler(404)
+# async def custom_404_handler(request, exc):
+#     index_file = os.path.join(DIST_DIR, "index.html")
+#     if os.path.exists(index_file) and not request.url.path.startswith("/api"):
+#         return FileResponse(index_file)
+#     return JSONResponse({"detail": "Not Found"}, status_code=404)
 
 @app.get("/{full_path:path}")
 async def catch_all(full_path: str):
