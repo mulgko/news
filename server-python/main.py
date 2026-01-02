@@ -921,9 +921,13 @@ except Exception as e:
 # 로컬에서는 SQLite 사용
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./news.db")
 
+# 디버깅: DATABASE_URL 확인
+print(f"🔍 DATABASE_URL: {DATABASE_URL[:50]}..." if len(DATABASE_URL) > 50 else f"🔍 DATABASE_URL: {DATABASE_URL}")
+
 # PostgreSQL URL 형식 수정 (postgresql:// → postgresql://)
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    print(f"✅ PostgreSQL URL 형식 변경 완료")
 
 # PostgreSQL의 경우 connect_args 설정 불필요, SQLite만 설정
 connect_args = {}
