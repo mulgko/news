@@ -14,7 +14,6 @@ RUN npm ci
 # Copy frontend source files
 COPY client ./client
 COPY shared ./shared
-COPY attached_assets ./attached_assets
 COPY vite.config.ts ./
 COPY tsconfig.json ./
 COPY tailwind.config.ts ./
