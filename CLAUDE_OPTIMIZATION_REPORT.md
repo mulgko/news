@@ -463,3 +463,133 @@ ls -l server-python/news.db  # DB 파일 확인
 **작성자**: Claude Sonnet 4.5
 **문서 버전**: 2.0
 **최종 업데이트**: 2026-01-05
+
+---
+
+## 🔧 Backend Refactoring Report (2026-01-06)
+
+### 개요
+
+기존 1,660줄의 단일 `main.py` 파일을 18개의 모듈로 분리하여 **유지보수성과 확장성을 대폭 향상**시켰습니다.
+
+### 리팩토링 통계
+
+**Phase 1: Python 백엔드 모듈화**
+- **main.py**: 1,660줄 → 116줄 (93% 감소)
+- **모듈 수**: 1개 → 18개 파일
+- **코드 분산**: 1,723줄 (체계적으로 분리)
+
+**Phase 2: 프론트엔드 의존성 정리**
+- **제거된 패키지**: 14개 (Node.js 백엔드, Drizzle ORM)
+- **npm 패키지**: 448개 → 434개
+- **설정 파일**: drizzle.config.ts 등 2개 삭제
+
+**Phase 3: 추가 개선**
+- **Python 의존성**: 5개 불필요한 패키지 제거
+- **문서화**: ARCHITECTURE.md 신규 작성
+
+### 새로운 디렉토리 구조
+
+```
+server-python/
+├── main.py (116줄) - FastAPI 앱 초기화만
+└── app/
+    ├── core/ (99줄)
+    │   ├── config.py - 환경변수 설정
+    │   └── database.py - DB 연결 관리
+    ├── models/ (25줄)
+    │   └── post.py - SQLAlchemy 모델
+    ├── schemas/ (45줄)
+    │   └── post.py - Pydantic 스키마
+    ├── services/ (1,093줄)
+    │   ├── ai_summarizer.py - AI 요약
+    │   ├── content_extractor.py - 콘텐츠 추출 (810줄)
+    │   ├── news_crawler.py - 뉴스 크롤러 (164줄)
+    │   └── url_decoder.py - URL 디코딩
+    ├── routers/ (420줄)
+    │   ├── posts.py - 게시물 API
+    │   └── news.py - 뉴스 API
+    └── utils/ (29줄)
+        └── helpers.py - 유틸리티
+```
+
+### 개선 효과
+
+**1. 코드 품질**
+- ✅ 파일당 평균 100-300줄로 가독성 향상
+- ✅ 단일 책임 원칙 (SRP) 준수
+- ✅ 모듈 간 명확한 의존성 구조
+
+**2. 유지보수성**
+- ✅ 기능별 파일 분리로 수정 범위 최소화
+- ✅ import 경로로 모듈 역할 직관적 파악
+- ✅ 순환 참조 방지
+
+**3. 테스트 용이성**
+- ✅ 각 서비스 독립적 단위 테스트 가능
+- ✅ Mock 객체 주입 용이
+- ✅ 라우터별 통합 테스트 분리 가능
+
+**4. 확장성**
+- ✅ 새 기능 추가 시 적절한 모듈에 배치
+- ✅ 팀 협업 시 파일 충돌 최소화
+- ✅ 마이크로서비스 전환 기반 마련
+
+### 제거된 의존성
+
+**Python (requirements.txt)**
+- alembic (DB 마이그레이션 - 미사용)
+- python-multipart (파일 업로드 - 미사용)
+- aiofiles (비동기 파일 - 미사용)
+- httpx (비동기 HTTP - requests 사용 중)
+- certifi (SSL 인증서 - requests 포함)
+
+**Node.js (package.json)**
+- express, express-session, passport, passport-local
+- connect-pg-simple, memorystore, ws, pg
+- drizzle-orm, drizzle-kit, drizzle-zod
+
+### Git 커밋 이력
+
+```bash
+# Branch: refactor/backend-modularization
+1c9528a refactor: Modularize Python backend (Phase 1)
+42ba59d chore: Clean up frontend dependencies (Phase 2)
+[pending] docs: Update documentation and cleanup deps (Phase 3)
+```
+
+### 성능 검증
+
+**서버 시작 테스트**
+- ✅ FastAPI 정상 시작
+- ✅ 데이터베이스 연결 성공
+- ✅ API 엔드포인트 작동 확인
+
+**프론트엔드 빌드**
+- ✅ TypeScript 컴파일 성공
+- ✅ Vite 빌드 성공 (1.77초)
+- ✅ 기능 정상 작동
+
+### 추가 문서
+
+**신규 작성**
+- `ARCHITECTURE.md` - 전체 아키텍처 설명서
+
+**업데이트 필요**
+- `BUILD_GUIDE.md` - 새 구조 반영
+- `README.md` - 프로젝트 소개 업데이트
+
+### 다음 단계 권장사항
+
+1. **브랜치 병합**: main으로 merge하여 변경사항 반영
+2. **CI/CD 설정**: GitHub Actions로 자동 테스트
+3. **Unit Tests 작성**: services/ 모듈별 테스트
+4. **API 문서화**: OpenAPI/Swagger 자동 생성 활성화
+5. **로깅 시스템**: 구조화된 로깅 추가
+6. **에러 핸들링**: 전역 예외 처리기 추가
+
+---
+
+**리팩토링 완료일**: 2026-01-06
+**담당**: Claude Code
+**변경 파일 수**: 26개 파일 (추가 19, 수정 5, 삭제 2)
