@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { insertPostSchema, posts } from "./schema";
+import { insertPostSchema, Post } from "./schema";
 
 export const errorSchemas = {
   validation: z.object({
@@ -26,14 +26,14 @@ export const api = {
         })
         .optional(),
       responses: {
-        200: z.array(z.custom<typeof posts.$inferSelect>()),
+        200: z.array(z.custom<Post>()),
       },
     },
     get: {
       method: "GET" as const,
       path: "/api/posts/{id}", // :id -> {id}
       responses: {
-        200: z.custom<typeof posts.$inferSelect>(),
+        200: z.custom<Post>(),
         404: errorSchemas.notFound,
       },
     },
@@ -42,7 +42,7 @@ export const api = {
       path: "/api/posts",
       input: insertPostSchema,
       responses: {
-        201: z.custom<typeof posts.$inferSelect>(),
+        201: z.custom<Post>(),
         400: errorSchemas.validation,
       },
     },
