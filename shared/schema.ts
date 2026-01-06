@@ -1,27 +1,32 @@
-import { pgTable, text, serial, timestamp, integer } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const posts = pgTable("posts", {
-  id: serial("id").primaryKey(),
-  title: text("title").notNull(),
-  summary: text("summary").notNull(),
-  content: text("content").notNull(),
-  category: text("category").notNull(),
-  region: text("region").notNull(),
-  image_url: text("image_url").notNull(),
-  url: text("url"),
-  created_at: timestamp("created_at").defaultNow(),
-  likes: integer("likes").default(0),
-  dislikes: integer("dislikes").default(0),
-  views: integer("views").default(0),
-  ai_summary: text("ai_summary"),
+// Post type definition (matching Python backend SQLAlchemy model)
+export interface Post {
+  id: number;
+  title: string;
+  summary: string;
+  content: string;
+  category: string;
+  region: string;
+  image_url: string;
+  url: string | null;
+  created_at: string | null;
+  likes: number;
+  dislikes: number;
+  views: number;
+  ai_summary: string | null;
+}
+
+// Zod schema for post validation
+export const insertPostSchema = z.object({
+  title: z.string(),
+  summary: z.string(),
+  content: z.string(),
+  category: z.string(),
+  region: z.string(),
+  image_url: z.string(),
+  url: z.string().nullable().optional(),
+  ai_summary: z.string().nullable().optional(),
 });
 
-export const insertPostSchema = createInsertSchema(posts).omit({
-  id: true,
-  created_at: true,
-});
-
-export type Post = typeof posts.$inferSelect;
 export type InsertPost = z.infer<typeof insertPostSchema>;

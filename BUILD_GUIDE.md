@@ -548,3 +548,83 @@ curl -X POST https://your-app.railway.app/api/news/fetch
 - [Railway 공식 문서](https://docs.railway.app/)
 - [Vite 공식 문서](https://vitejs.dev/)
 - [FastAPI 공식 문서](https://fastapi.tiangolo.com/)
+
+---
+
+## 프로젝트 구조 (2026-01-06 업데이트)
+
+### 백엔드 구조 (리팩토링 완료)
+
+```
+server-python/
+├── main.py                    # FastAPI 앱 초기화 (116줄)
+├── requirements.txt           # Python 의존성
+├── news.db                    # SQLite 데이터베이스 (로컬)
+└── app/                       # 애플리케이션 모듈
+    ├── core/                  # 핵심 설정
+    │   ├── config.py         # 환경변수 및 설정
+    │   └── database.py       # DB 연결 관리
+    ├── models/               # 데이터베이스 모델
+    │   └── post.py           # Post SQLAlchemy 모델
+    ├── schemas/              # API 스키마
+    │   └── post.py           # Pydantic 검증 스키마
+    ├── services/             # 비즈니스 로직
+    │   ├── ai_summarizer.py      # Google Gemini AI 통합
+    │   ├── content_extractor.py  # 뉴스 콘텐츠 추출
+    │   ├── news_crawler.py       # Google News RSS 크롤러
+    │   └── url_decoder.py        # URL 디코딩
+    ├── routers/              # API 엔드포인트
+    │   ├── posts.py          # 게시물 CRUD
+    │   └── news.py           # 뉴스 가져오기
+    └── utils/                # 유틸리티 함수
+        └── helpers.py        # 헬퍼 함수
+```
+
+### 프론트엔드 구조
+
+```
+client/
+├── src/
+│   ├── components/          # React 컴포넌트
+│   │   └── ui/             # shadcn/ui 컴포넌트
+│   ├── hooks/              # 커스텀 훅
+│   ├── lib/                # 유틸리티
+│   ├── pages/              # 페이지 컴포넌트
+│   └── App.tsx             # 루트 컴포넌트
+└── public/                 # 정적 파일
+```
+
+### 주요 변경사항 (리팩토링)
+
+**이전 구조:**
+- `server-python/main.py`: 1,660줄의 단일 파일
+
+**현재 구조:**
+- `server-python/main.py`: 116줄 (FastAPI 초기화만)
+- `server-python/app/`: 18개 모듈로 체계적 분리
+
+**이점:**
+- ✅ 코드 가독성 및 유지보수성 향상
+- ✅ 모듈별 독립적 테스트 가능
+- ✅ 팀 협업 시 파일 충돌 최소화
+- ✅ 새 기능 추가 시 적절한 위치에 배치 용이
+
+### 개발 워크플로우 변경사항
+
+**이전:**
+- 모든 코드가 `main.py`에 집중
+- 수정 시 전체 파일 탐색 필요
+
+**현재:**
+- 기능별로 모듈 분리
+- 수정할 기능에 해당하는 모듈만 열면 됨
+
+**예시:**
+- AI 요약 수정 → `app/services/ai_summarizer.py`
+- API 엔드포인트 추가 → `app/routers/posts.py` 또는 `news.py`
+- 데이터베이스 설정 변경 → `app/core/database.py`
+
+---
+
+**문서 업데이트**: 2026-01-06  
+**관련 문서**: [ARCHITECTURE.md](./ARCHITECTURE.md) - 상세 아키텍처 설명
